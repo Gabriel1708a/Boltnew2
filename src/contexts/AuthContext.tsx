@@ -53,6 +53,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       name: 'Cliente 2',
       role: 'client' as const,
       clientId: 'client-2'
+    },
+    {
+      id: '4',
+      email: 'cliente3@email.com',
+      password: 'cliente123',
+      name: 'Cliente 3',
+      role: 'client' as const,
+      clientId: 'client-3'
+    },
+    {
+      id: '5',
+      email: 'cliente4@email.com',
+      password: 'cliente123',
+      name: 'Cliente 4',
+      role: 'client' as const,
+      clientId: 'client-4'
     }
   ];
 

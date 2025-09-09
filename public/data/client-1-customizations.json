@@ -1,0 +1,31 @@
+{
+  "primaryColor": "#3B82F6",
+  "secondaryColor": "#10B981",
+  "backgroundColor": "linear-gradient(135deg, #0f0e0e 30%, #d8006c 100%)",
+  "companyName": "Cliente 1 - TradingPro",
+  "heroTitle": "Sinais Profissionais - Cliente 1",
+  "heroSubtitle": "Maximize seus lucros com análises precisas e estratégias comprovadas",
+  "aboutText": "Nossa plataforma oferece sinais de trading de alta qualidade, baseados em análises técnicas avançadas e inteligência artificial. Com mais de 85% de assertividade, ajudamos traders a maximizar seus resultados no mercado financeiro.",
+  "features": [
+    "Sinais em tempo real",
+    "Análise técnica avançada",
+    "Suporte 24/7",
+    "Taxa de acerto superior a 85%",
+    "Gestão de risco profissional",
+    "Comunidade VIP exclusiva"
+  ],
+  "testimonial": {
+    "text": "Os sinais da TradingPro transformaram minha forma de investir. Em 6 meses, consegui um retorno de mais de 200%.",
+    "author": "Maria Silva",
+    "position": "Investidora"
+  },
+  "carouselImages": [
+    { "type": "url", "value": "https://laysinais.netlify.app/img/IMAGENS%20SITE/1.jpeg" },
+    { "type": "url", "value": "https://laysinais.netlify.app/img/IMAGENS%20SITE/2.jpeg" },
+    { "type": "url", "value": "https://laysinais.netlify.app/img/IMAGENS%20SITE/3.jpeg" },
+    { "type": "url", "value": "https://laysinais.netlify.app/img/IMAGENS%20SITE/4.jpeg" }
+  ],
+  "platformLinks": [],
+  "whatsappLink": "https://chat.whatsapp.com/JzoNzkKYIYl1sWjS0Gdgic?mode=ems_copy_c",
+  "instagramLink": "https://www.instagram.com/layaneslots9217?igsh=MXJ3dDZnaThxeGx6NA=="
+}

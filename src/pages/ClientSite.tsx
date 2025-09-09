@@ -1,636 +1,931 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { 
-  TrendingUp, Target, Users, Shield, Star, ArrowRight, 
-  CheckCircle, Play, Award, BarChart, Clock, Smartphone,
-  MessageCircle, Zap, Globe, Lock, Trophy, ChevronRight
-} from 'lucide-react';
-
-// Simulando dados dos clientes para demonstração
-const clientsData = {
-  'client-1': {
-    companyName: 'LaysSinais',
-    primaryColor: '#3B82F6',
-    secondaryColor: '#10B981',
-    heroTitle: 'Sinais de Trading Profissionais',
-    heroSubtitle: 'Transforme seus investimentos com análises precisas e sinais de alta performance'
-  },
-  'client-2': {
-    companyName: 'InvestMax Sinais',
-    primaryColor: '#7C3AED',
-    secondaryColor: '#EF4444',
-    heroTitle: 'Sinais de Investimento Inteligente',
-    heroSubtitle: 'Sua jornada rumo ao sucesso financeiro começa aqui'
-  }
-};
+import { pgGames, ppGames, GameType, Game } from '../data/gamesData';
+import { useCustomization } from '../contexts/CustomizationContext';
 
 const ClientSite: React.FC = () => {
   const { clientId } = useParams<{ clientId: string }>();
-  const clientData = clientsData[clientId as keyof typeof clientsData] || clientsData['client-1'];
+  const { getClientCustomizations } = useCustomization();
+  
+  // Obter customizações específicas do cliente baseado no clientId da URL
+  const clientCustomizations = getClientCustomizations(clientId || '');
+  
+  console.log('Client ID:', clientId); // Para evitar warning de variável não usada
+  console.log('Client Customizations:', clientCustomizations);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [bitcoinStatus, setBitcoinStatus] = useState('Carregando...');
+  const [bitcoinPrice, setBitcoinPrice] = useState('Carregando...');
+  const [showModal, setShowModal] = useState(false);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+  const [timer, setTimer] = useState('10:00');
+  const [progressBars, setProgressBars] = useState<{[key: string]: number}>({});
+  const [currentGameType, setCurrentGameType] = useState<GameType>('PG');
+  const [currentGames, setCurrentGames] = useState<Game[]>(pgGames.slice(0, 20)); // Carrega apenas 20 jogos inicialmente
+  const [allGamesLoaded, setAllGamesLoaded] = useState(false);
+
+
+  // Usar imagens personalizadas específicas do cliente (permitir array vazio)
+  const carouselImages = clientCustomizations.carouselImages.length > 0 
+    ? clientCustomizations.carouselImages.map(img => img.value)
+    : [
+        "https://laysinais.netlify.app/img/IMAGENS%20SITE/1.jpeg",
+        "https://laysinais.netlify.app/img/IMAGENS%20SITE/2.jpeg", 
+        "https://laysinais.netlify.app/img/IMAGENS%20SITE/3.jpeg",
+        "https://laysinais.netlify.app/img/IMAGENS%20SITE/4.jpeg"
+      ];
+
+  // Função para gerar porcentagem aleatória
+  const getRandomPercentage = () => Math.floor(Math.random() * (97 - 30 + 1)) + 30;
+
+  // Função para obter cor baseada na porcentagem
+  const getColor = (percentage: number) => {
+    if (percentage <= 35) return "red";
+    if (percentage <= 45) return "orange";
+    if (percentage <= 55) return "#d1b30b";
+    if (percentage <= 60) return "#aaa810";
+    if (percentage <= 80) return "#5ba000";
+    return "green";
+  };
+
+  // Função para obter números aleatórios para min pagantes
+  const getRandomNumbers = () => {
+    const numbers = new Set<number>();
+    while (numbers.size < 3) {
+      numbers.add(Math.floor(Math.random() * 10));
+    }
+    return [...numbers].sort((a, b) => a - b).join(", ");
+  };
+
+  // Carrossel automático (só funciona se houver imagens)
+  useEffect(() => {
+    if (carouselImages.length > 0) {
+      const interval = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % carouselImages.length);
+      }, 4000);
+      return () => clearInterval(interval);
+    }
+  }, [carouselImages.length]);
+
+  // Buscar dados do Bitcoin
+  useEffect(() => {
+    const fetchBitcoinStatus = async () => {
+      try {
+        const response = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=brl&ids=bitcoin");
+        const data = await response.json();
+        const bitcoin = data[0];
+        const priceChange = bitcoin.price_change_percentage_24h;
+        const currentPrice = bitcoin.current_price;
+
+        if (priceChange >= 0) {
+          setBitcoinStatus("Bitcoin em alta!");
+          setBitcoinPrice(currentPrice.toFixed(2).replace(".", ","));
+        } else {
+          setBitcoinStatus("Bitcoin em queda!");
+          setBitcoinPrice(currentPrice.toFixed(2).replace(".", ","));
+        }
+      } catch (error) {
+        console.error("Erro ao buscar dados do Bitcoin:", error);
+      }
+    };
+
+    fetchBitcoinStatus();
+    const interval = setInterval(fetchBitcoinStatus, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Contador regressivo
+  useEffect(() => {
+    const updateTimer = () => {
+      const now = new Date();
+      const proximoMultiplo = new Date(now);
+      const minutos = now.getMinutes();
+      let proximoMinutoMultiplo = minutos - (minutos % 10) + 10;
+      if (proximoMinutoMultiplo === 60) {
+        proximoMultiplo.setHours(proximoMultiplo.getHours() + 1);
+        proximoMinutoMultiplo = 0;
+      }
+      proximoMultiplo.setMinutes(proximoMinutoMultiplo);
+      proximoMultiplo.setSeconds(0);
+      proximoMultiplo.setMilliseconds(0);
+
+      const diffMs = proximoMultiplo.getTime() - now.getTime();
+      const diffMin = Math.floor(diffMs / 60000);
+      const diffSec = Math.floor((diffMs % 60000) / 1000);
+      setTimer(`${String(diffMin).padStart(2, "0")}:${String(diffSec).padStart(2, "0")}`);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Inicializar progress bars
+  useEffect(() => {
+    const newProgressBars: {[key: string]: number} = {};
+    pgGames.forEach(jogo => {
+      newProgressBars[`bar${jogo.id}`] = getRandomPercentage();
+      newProgressBars[`bar${jogo.id}_2`] = getRandomPercentage();
+      newProgressBars[`bar${jogo.id}_3`] = getRandomPercentage();
+    });
+    setProgressBars(newProgressBars);
+  }, []);
+
+  // Verificar modal de termos
+  useEffect(() => {
+    const naoMostrar = localStorage.getItem("naoMostrarTermos");
+    if (!naoMostrar) {
+      setShowModal(true);
+    }
+  }, []);
+
+  const handleCloseModal = () => {
+    if (dontShowAgain) {
+      localStorage.setItem("naoMostrarTermos", "true");
+    }
+    setShowModal(false);
+  };
+
+  const scrollToComoJogar = () => {
+    const element = document.getElementById("como-jogar");
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  // Função para alternar entre tipos de jogos
+  const toggleGameType = () => {
+    const newGameType: GameType = currentGameType === 'PG' ? 'PP' : 'PG';
+    setCurrentGameType(newGameType);
+    
+    // Carrega todos os jogos do novo tipo
+    const allGames = newGameType === 'PG' ? pgGames : ppGames;
+    setCurrentGames(allGames);
+    setAllGamesLoaded(true);
+    
+    // Resetar progress bars para o novo tipo de jogo
+    const newProgressBars: {[key: string]: number} = {};
+    allGames.forEach(jogo => {
+      newProgressBars[`bar${jogo.id}`] = getRandomPercentage();
+      newProgressBars[`bar${jogo.id}_2`] = getRandomPercentage();
+      newProgressBars[`bar${jogo.id}_3`] = getRandomPercentage();
+    });
+    setProgressBars(newProgressBars);
+  };
+
+  // Função para carregar mais jogos PG
+  const loadMoreGames = () => {
+    if (!allGamesLoaded && currentGameType === 'PG') {
+      setCurrentGames(pgGames);
+      setAllGamesLoaded(true);
+      
+      // Atualizar progress bars para todos os jogos
+      const newProgressBars: {[key: string]: number} = {};
+      pgGames.forEach(jogo => {
+        newProgressBars[`bar${jogo.id}`] = getRandomPercentage();
+        newProgressBars[`bar${jogo.id}_2`] = getRandomPercentage();
+        newProgressBars[`bar${jogo.id}_3`] = getRandomPercentage();
+      });
+      setProgressBars(newProgressBars);
+    }
+  };
 
   return (
-    <div className="min-h-screen">
-      {/* Header */}
-      <header className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div 
-                className="p-2 rounded-lg"
-                style={{ backgroundColor: `${clientData.primaryColor}20` }}
-              >
-                <TrendingUp 
-                  className="h-6 w-6" 
-                  style={{ color: clientData.primaryColor }}
-                />
-              </div>
-              <span className="text-2xl font-bold text-gray-900">{clientData.companyName}</span>
+    <div style={{ 
+      background: clientCustomizations.backgroundColor,
+      backgroundAttachment: 'fixed',
+      backgroundRepeat: 'no-repeat',
+      backgroundSize: 'cover',
+      minHeight: '100vh',
+      width: '100vw',
+      margin: 0,
+      padding: 0,
+      fontFamily: 'Roboto, sans-serif',
+      overflowX: 'hidden'
+    }}>
+      {/* Círculos de fundo */}
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        overflow: 'hidden',
+        zIndex: -1
+      }}>
+        {[...Array(12)].map((_, i) => (
+          <div
+            key={i}
+            style={{
+              position: 'absolute',
+              borderRadius: '50%',
+              border: '1px solid rgba(255, 255, 255, 0.11)',
+              width: `${100 + i * 20}px`,
+              height: `${100 + i * 20}px`,
+              top: `${5 + i * 8}%`,
+              left: `${10 + i * 7}%`
+            }}
+          />
+        ))}
             </div>
             
-            <nav className="hidden md:flex items-center space-x-8">
-              <a href="#inicio" className="text-gray-700 hover:text-blue-600 transition-colors">Início</a>
-              <a href="#sobre" className="text-gray-700 hover:text-blue-600 transition-colors">Sobre</a>
-              <a href="#sinais" className="text-gray-700 hover:text-blue-600 transition-colors">Sinais</a>
-              <a href="#resultados" className="text-gray-700 hover:text-blue-600 transition-colors">Resultados</a>
-              <a href="#planos" className="text-gray-700 hover:text-blue-600 transition-colors">Planos</a>
-              <a href="#contato" className="text-gray-700 hover:text-blue-600 transition-colors">Contato</a>
-            </nav>
-
-            <div className="flex items-center space-x-4">
-              <button className="text-gray-700 hover:text-blue-600 transition-colors">
-                Login
-              </button>
-              <button 
-                className="px-6 py-2 rounded-full text-white font-semibold transition-all hover:scale-105"
-                style={{ backgroundColor: clientData.primaryColor }}
-              >
-                Começar Agora
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Hero Section */}
-      <section 
-        id="inicio" 
-        className="pt-24 pb-16 relative overflow-hidden"
-        style={{
-          background: `linear-gradient(135deg, ${clientData.primaryColor}, ${clientData.secondaryColor})`
-        }}
-      >
-        <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="text-white">
-              <div className="inline-flex items-center bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
-                <Star className="h-4 w-4 text-yellow-300 mr-2" />
-                <span className="text-sm font-medium">Sinais com 87% de Assertividade</span>
-              </div>
-              
-              <h1 className="text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-                {clientData.heroTitle}
-              </h1>
-              
-              <p className="text-xl text-white/90 mb-8 leading-relaxed">
-                {clientData.heroSubtitle}
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-4 mb-12">
-                <button 
-                  className="px-8 py-4 bg-white text-black rounded-full font-semibold text-lg transition-all transform hover:scale-105 hover:shadow-xl"
-                >
-                  Acesso Gratuito por 7 Dias
-                  <ArrowRight className="inline-block ml-2 h-5 w-5" />
-                </button>
-                <button className="px-8 py-4 border-2 border-white/30 text-white rounded-full font-semibold text-lg hover:bg-white/10 transition-all flex items-center justify-center">
-                  <Play className="h-5 w-5 mr-2" />
-                  Ver Demonstração
-                </button>
-              </div>
-
-              <div className="grid grid-cols-3 gap-6 text-center">
-                <div>
-                  <div className="text-3xl font-bold">87%</div>
-                  <div className="text-white/80 text-sm">Taxa de Acerto</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold">10K+</div>
-                  <div className="text-white/80 text-sm">Traders Ativos</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold">24/7</div>
-                  <div className="text-white/80 text-sm">Suporte</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="relative">
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
-                <div className="text-center mb-6">
-                  <div className="inline-block p-4 bg-green-400 rounded-full mb-4">
-                    <TrendingUp className="h-8 w-8 text-white" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-white mb-2">Sinal Ao Vivo</h3>
-                  <div className="inline-flex items-center bg-green-500 text-white px-3 py-1 rounded-full text-sm">
-                    <div className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></div>
-                    ATIVO
-                  </div>
-                </div>
-                
-                <div className="space-y-4 text-white">
-                  <div className="flex justify-between items-center">
-                    <span>Par:</span>
-                    <span className="font-bold">EUR/USD</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Direção:</span>
-                    <span className="text-green-400 font-bold">⬆️ COMPRA</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Entrada:</span>
-                    <span className="font-bold">1.0850</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Take Profit:</span>
-                    <span className="text-green-400 font-bold">1.0890</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Stop Loss:</span>
-                    <span className="text-red-400 font-bold">1.0820</span>
-                  </div>
-                </div>
-                
-                <div className="mt-6 pt-4 border-t border-white/20 text-center">
-                  <div className="text-2xl font-bold text-green-400">+40 pips</div>
-                  <div className="text-white/80 text-sm">Lucro Atual</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Floating elements */}
-        <div className="absolute top-20 left-10 w-20 h-20 bg-white/10 rounded-full blur-xl animate-pulse"></div>
-        <div className="absolute bottom-20 right-20 w-32 h-32 bg-white/5 rounded-full blur-xl animate-pulse delay-1000"></div>
-      </section>
-
-      {/* Features Section */}
-      <section id="sobre" className="py-20 bg-gray-50">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center bg-blue-100 text-blue-800 px-4 py-2 rounded-full mb-4">
-              <Target className="h-4 w-4 mr-2" />
-              Por que escolher nossos sinais?
-            </div>
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
-              A Tecnologia que Gera Resultados
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Combinamos análise técnica avançada com inteligência artificial para entregar 
-              sinais precisos e rentáveis para nossos traders.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-            <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1">
-              <div 
-                className="inline-block p-4 rounded-2xl mb-6"
-                style={{ backgroundColor: `${clientData.primaryColor}20` }}
-              >
-                <BarChart 
-                  className="h-8 w-8" 
-                  style={{ color: clientData.primaryColor }}
-                />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Análise Precisa</h3>
-              <p className="text-gray-600 mb-4">
-                Utilizamos algoritmos avançados para analisar milhares de dados do mercado em tempo real.
-              </p>
-              <div className="flex items-center text-blue-600 font-semibold">
-                Saiba mais <ChevronRight className="h-4 w-4 ml-1" />
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1">
-              <div 
-                className="inline-block p-4 rounded-2xl mb-6"
-                style={{ backgroundColor: `${clientData.secondaryColor}20` }}
-              >
-                <Clock 
-                  className="h-8 w-8" 
-                  style={{ color: clientData.secondaryColor }}
-                />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Sinais em Tempo Real</h3>
-              <p className="text-gray-600 mb-4">
-                Receba notificações instantâneas dos melhores momentos para entrar no mercado.
-              </p>
-              <div className="flex items-center text-blue-600 font-semibold">
-                Saiba mais <ChevronRight className="h-4 w-4 ml-1" />
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1">
-              <div className="inline-block p-4 bg-purple-100 rounded-2xl mb-6">
-                <Shield className="h-8 w-8 text-purple-600" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Gestão de Risco</h3>
-              <p className="text-gray-600 mb-4">
-                Estratégias profissionais de gerenciamento de risco para proteger seu capital.
-              </p>
-              <div className="flex items-center text-blue-600 font-semibold">
-                Saiba mais <ChevronRight className="h-4 w-4 ml-1" />
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1">
-              <div className="inline-block p-4 bg-green-100 rounded-2xl mb-6">
-                <Smartphone className="h-8 w-8 text-green-600" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">App Mobile</h3>
-              <p className="text-gray-600 mb-4">
-                Acesse seus sinais a qualquer momento através do nosso aplicativo mobile.
-              </p>
-              <div className="flex items-center text-blue-600 font-semibold">
-                Saiba mais <ChevronRight className="h-4 w-4 ml-1" />
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1">
-              <div className="inline-block p-4 bg-orange-100 rounded-2xl mb-6">
-                <MessageCircle className="h-8 w-8 text-orange-600" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Suporte 24/7</h3>
-              <p className="text-gray-600 mb-4">
-                Nossa equipe está sempre disponível para tirar suas dúvidas e ajudar.
-              </p>
-              <div className="flex items-center text-blue-600 font-semibold">
-                Saiba mais <ChevronRight className="h-4 w-4 ml-1" />
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1">
-              <div className="inline-block p-4 bg-red-100 rounded-2xl mb-6">
-                <Globe className="h-8 w-8 text-red-600" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Múltiplos Mercados</h3>
-              <p className="text-gray-600 mb-4">
-                Sinais para Forex, Criptomoedas, Ações e Commodities em uma única plataforma.
-              </p>
-              <div className="flex items-center text-blue-600 font-semibold">
-                Saiba mais <ChevronRight className="h-4 w-4 ml-1" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Results Section */}
-      <section id="resultados" className="py-20 bg-white">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center bg-green-100 text-green-800 px-4 py-2 rounded-full mb-4">
-              <Trophy className="h-4 w-4 mr-2" />
-              Resultados Comprovados
-            </div>
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
-              Números que Falam por Si Só
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Mais de 10.000 traders já transformaram seus resultados com nossos sinais profissionais.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
-            <div className="text-center">
-              <div 
-                className="text-5xl font-bold mb-2"
-                style={{ color: clientData.primaryColor }}
-              >
-                87%
-              </div>
-              <div className="text-gray-600 font-medium">Taxa de Acerto</div>
-            </div>
-            <div className="text-center">
-              <div 
-                className="text-5xl font-bold mb-2"
-                style={{ color: clientData.secondaryColor }}
-              >
-                10K+
-              </div>
-              <div className="text-gray-600 font-medium">Traders Ativos</div>
-            </div>
-            <div className="text-center">
-              <div className="text-5xl font-bold text-purple-600 mb-2">250%</div>
-              <div className="text-gray-600 font-medium">ROI Médio Mensal</div>
-            </div>
-            <div className="text-center">
-              <div className="text-5xl font-bold text-orange-500 mb-2">R$2M+</div>
-              <div className="text-gray-600 font-medium">Lucros Gerados</div>
-            </div>
-          </div>
-
+      {/* Modal de Termos */}
+      {showModal && (
+        <div 
+          id="modal"
+          style={{
+            display: 'block',
+            position: 'fixed',
+            zIndex: 1000,
+            left: 0,
+            top: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0,0,0,0.6)'
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              handleCloseModal();
+            }
+          }}
+        >
           <div 
-            className="rounded-3xl p-12 text-white relative overflow-hidden"
+            id="modal-content"
             style={{
-              background: `linear-gradient(135deg, ${clientData.primaryColor}, ${clientData.secondaryColor})`
+              backgroundColor: '#fff',
+              margin: '5% auto',
+              padding: '20px',
+              borderRadius: '8px',
+              width: '90%',
+              maxWidth: '600px',
+              maxHeight: '80vh',
+              boxShadow: '0 0 10px rgba(0,0,0,0.3)',
+              overflow: 'auto'
             }}
           >
-            <div className="relative z-10">
-              <div className="text-center mb-12">
-                <h3 className="text-3xl font-bold mb-4">Depoimento de Cliente</h3>
-                <div className="flex justify-center mb-6">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-6 w-6 text-yellow-300 fill-current" />
-                  ))}
-                </div>
-              </div>
-              
-              <div className="max-w-4xl mx-auto text-center">
-                <p className="text-2xl mb-8 leading-relaxed">
-                  "Em apenas 3 meses usando os sinais, consegui um retorno de 180% no meu 
-                  investimento. A precisão é impressionante e o suporte é excepcional!"
-                </p>
-                <div className="flex items-center justify-center space-x-4">
-                  <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
-                    <Users className="h-8 w-8" />
-                  </div>
-                  <div className="text-left">
-                    <div className="font-semibold text-lg">Carlos Silva</div>
-                    <div className="text-white/80">Trader Profissional</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full blur-3xl"></div>
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Section */}
-      <section id="planos" className="py-20 bg-gray-50">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center bg-purple-100 text-purple-800 px-4 py-2 rounded-full mb-4">
-              <Award className="h-4 w-4 mr-2" />
-              Escolha seu plano
-            </div>
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
-              Planos para Todos os Perfis
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Comece gratuitamente e evolua conforme seus resultados crescem.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {/* Plano Básico */}
-            <div className="bg-white rounded-3xl p-8 shadow-lg border-2 border-transparent hover:border-blue-200 transition-all">
-              <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Básico</h3>
-                <div className="text-4xl font-bold text-gray-900 mb-2">R$ 97</div>
-                <div className="text-gray-600">por mês</div>
-              </div>
-              
-              <ul className="space-y-4 mb-8">
-                <li className="flex items-center">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                  <span>5 sinais por dia</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                  <span>Suporte por email</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                  <span>Análises básicas</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                  <span>App mobile</span>
-                </li>
-              </ul>
-              
-              <button className="w-full bg-gray-900 text-white py-4 rounded-full font-semibold hover:bg-gray-800 transition-colors">
-                Começar Agora
-              </button>
-            </div>
-
-            {/* Plano Pro */}
-            <div 
-              className="bg-white rounded-3xl p-8 shadow-xl border-2 relative transform scale-105"
-              style={{ borderColor: clientData.primaryColor }}
+            <span 
+              id="close-btn"
+              onClick={handleCloseModal}
+        style={{
+                float: 'right',
+                fontSize: '24px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                color: '#666'
+              }}
             >
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <div 
-                  className="px-6 py-2 rounded-full text-white font-semibold text-sm"
-                  style={{ backgroundColor: clientData.primaryColor }}
-                >
-                  MAIS POPULAR
-                </div>
-              </div>
-              
-              <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Pro</h3>
-                <div className="text-4xl font-bold mb-2" style={{ color: clientData.primaryColor }}>
-                  R$ 197
-                </div>
-                <div className="text-gray-600">por mês</div>
-              </div>
-              
-              <ul className="space-y-4 mb-8">
-                <li className="flex items-center">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                  <span>15 sinais por dia</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                  <span>Suporte prioritário</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                  <span>Análises avançadas</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                  <span>Grupo VIP Telegram</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                  <span>Webinars exclusivos</span>
-                </li>
-              </ul>
-              
-              <button 
-                className="w-full text-white py-4 rounded-full font-semibold transition-colors"
-                style={{ 
-                  backgroundColor: clientData.primaryColor,
-                  ':hover': { opacity: 0.9 }
-                }}
-              >
-                Começar Agora
-              </button>
-            </div>
-
-            {/* Plano Premium */}
-            <div className="bg-white rounded-3xl p-8 shadow-lg border-2 border-transparent hover:border-purple-200 transition-all">
-              <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Premium</h3>
-                <div className="text-4xl font-bold text-gray-900 mb-2">R$ 397</div>
-                <div className="text-gray-600">por mês</div>
-              </div>
-              
-              <ul className="space-y-4 mb-8">
-                <li className="flex items-center">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                  <span>Sinais ilimitados</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                  <span>Consultoria 1:1</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                  <span>Suporte WhatsApp</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                  <span>Copy trading automático</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                  <span>Acesso total à plataforma</span>
-                </li>
-              </ul>
-              
-              <button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 rounded-full font-semibold hover:from-purple-700 hover:to-pink-700 transition-colors">
-                Começar Agora
-              </button>
-            </div>
-          </div>
-
-          <div className="text-center mt-12">
-            <p className="text-gray-600 mb-4">🎁 Garantia de 30 dias ou seu dinheiro de volta</p>
-            <p className="text-gray-600">💳 Parcelamento em até 12x sem juros</p>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 bg-gray-900">
-        <div className="container mx-auto px-6 text-center">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">
-              Pronto para Transformar Seus Investimentos?
-            </h2>
-            <p className="text-xl text-gray-300 mb-12">
-              Junte-se a mais de 10.000 traders que já estão lucrando com nossos sinais profissionais.
-            </p>
+              &times;
+            </span>
+            <h2 style={{ marginTop: 0, color: '#333' }}>Termos de Uso</h2>
             
-            <div className="flex flex-col sm:flex-row gap-6 justify-center">
-              <button 
-                className="px-10 py-5 bg-white text-gray-900 rounded-full font-bold text-lg transition-all transform hover:scale-105 hover:shadow-xl"
-              >
-                Teste Gratuito por 7 Dias
-                <Zap className="inline-block ml-2 h-5 w-5" />
-              </button>
-              <button 
-                className="px-10 py-5 border-2 border-white/30 text-white rounded-full font-bold text-lg hover:bg-white/10 transition-all"
-              >
-                Falar com Especialista
-                <MessageCircle className="inline-block ml-2 h-5 w-5" />
-              </button>
+            <div style={{
+              width: '100%',
+              height: '400px',
+              border: 'none',
+              marginTop: '10px',
+              backgroundColor: '#f9f9f9',
+              borderRadius: '4px',
+              overflow: 'auto',
+              padding: '15px',
+              fontFamily: 'Arial, Helvetica, sans-serif',
+              fontSize: '14px',
+              lineHeight: '1.5'
+            }}>
+              <h2 style={{ fontSize: '18px', marginTop: 0 }}>Termos de Uso e Política de Privacidade</h2>
+              
+              <p><strong>1. Aceitação dos Termos</strong></p>
+              <p>Ao acessar e utilizar este site, o usuário declara ter lido, compreendido e concordado com os presentes Termos de Uso e Política de Privacidade. Caso não concorde com qualquer parte deste documento, recomenda-se que não utilize o site.</p>
+              
+              <p><strong>2. Objetivo do Site</strong></p>
+              <p>Este site tem caráter meramente informativo, disponibilizando dados sobre porcentagens de jogos de slots e plataformas indicadas. Não realizamos apostas, intermediação financeira ou qualquer tipo de operação envolvendo jogos de azar.</p>
+              
+              <p><strong>3. Isenção de Responsabilidade</strong></p>
+              <p>As informações disponibilizadas neste site são baseadas em análises próprias ou dados públicos e podem estar sujeitas a alterações sem aviso prévio.</p>
+              <p><strong>Não garantimos ganhos, resultados ou qualquer tipo de benefício financeiro baseado nas informações aqui apresentadas.</strong></p>
+              <p>O usuário é inteiramente responsável por suas decisões ao utilizar qualquer plataforma mencionada no site.</p>
+              <p>Não nos responsabilizamos por perdas financeiras, decisões tomadas com base nos dados fornecidos, erros nas informações exibidas ou qualquer outro dano direto ou indireto decorrente do uso do site.</p>
+              
+              <p><strong>4. Regulamentação e Legislação</strong></p>
+              <p>Cada usuário é responsável por verificar a legislação vigente em sua região antes de participar de qualquer atividade relacionada a jogos de azar. Não incentivamos, promovemos ou facilitamos apostas ilegais e recomendamos que os usuários sigam todas as normas legais aplicáveis ao seu país ou estado.</p>
+              
+              <p><strong>5. Privacidade e Coleta de Dados</strong></p>
+              <p>Este site pode coletar informações básicas de navegação (como endereço IP e cookies) para melhorar a experiência do usuário.</p>
+              <p><strong>Nenhuma informação pessoal sensível é coletada, armazenada ou compartilhada com terceiros.</strong></p>
+              <p>O usuário pode desativar cookies diretamente em seu navegador caso não queira que dados básicos sejam coletados.</p>
+              
+              <p><strong>6. Uso de Terceiros e Links Externos</strong></p>
+              <p>Nosso site pode conter links para plataformas de terceiros. Não temos controle sobre o conteúdo, segurança, políticas de privacidade ou práticas desses sites e não nos responsabilizamos por eventuais danos ou prejuízos causados pelo uso dessas plataformas. Recomendamos que o usuário revise os termos de uso e políticas de privacidade dos sites acessados.</p>
+              
+              <p><strong>7. Riscos Associados</strong></p>
+              <p>Jogos de azar envolvem riscos financeiros significativos. O usuário deve avaliar cuidadosamente sua situação antes de se envolver nessas atividades. Não incentivamos o uso dessas informações como meio de renda ou solução financeira.</p>
+              
+              <p><strong>8. Uso Indevido das Informações</strong></p>
+              <p>As informações fornecidas são meramente informativas e não constituem aconselhamento financeiro, jurídico ou estratégico. O uso dessas informações é de inteira responsabilidade do usuário.</p>
+              
+              <p><strong>9. Limitação de Responsabilidade por Erros e Falhas Técnicas</strong></p>
+              <p>Nosso site pode conter erros, bugs ou falhas técnicas. Não garantimos a disponibilidade contínua do serviço e podemos suspendê-lo ou encerrá-lo a qualquer momento sem aviso prévio.</p>
+              
+              <p><strong>10. Idade Mínima</strong></p>
+              <p>O acesso a este site é restrito a maiores de 18 anos ou conforme a legislação local. Não coletamos informações de menores de idade e recomendamos que os responsáveis monitorem o acesso.</p>
+              
+              <p><strong>11. Direitos Autorais e Propriedade Intelectual</strong></p>
+              <p>O conteúdo deste site, incluindo textos, imagens e gráficos, é protegido por direitos autorais. A reprodução ou uso sem autorização expressa é proibida.</p>
+              
+              <p><strong>12. Alterações nos Termos</strong></p>
+              <p>Podemos atualizar ou modificar estes termos a qualquer momento sem aviso prévio. Recomendamos que os usuários revisem esta página periodicamente para se manterem informados sobre quaisquer alterações.</p>
             </div>
 
-            <div className="mt-12 flex items-center justify-center space-x-8 text-gray-400">
-              <div className="flex items-center">
-                <Lock className="h-5 w-5 mr-2" />
-                <span>Pagamento Seguro</span>
-              </div>
-              <div className="flex items-center">
-                <Shield className="h-5 w-5 mr-2" />
-                <span>Garantia 30 dias</span>
-              </div>
-              <div className="flex items-center">
-                <Users className="h-5 w-5 mr-2" />
-                <span>10K+ Clientes</span>
-              </div>
+            <div 
+              id="nao-mostrar"
+              style={{
+                marginTop: '15px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}
+            >
+              <input 
+                type="checkbox" 
+                id="naoMostrarCheckbox"
+                checked={dontShowAgain}
+                onChange={(e) => setDontShowAgain(e.target.checked)}
+              />
+              <label htmlFor="naoMostrarCheckbox" style={{ cursor: 'pointer', fontSize: '14px' }}>
+                Não mostrar novamente
+              </label>
             </div>
           </div>
         </div>
-      </section>
+      )}
 
-      {/* Footer */}
-      <footer id="contato" className="py-16 bg-gray-100">
-        <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-            <div>
-              <div className="flex items-center space-x-3 mb-6">
-                <div 
-                  className="p-2 rounded-lg"
-                  style={{ backgroundColor: `${clientData.primaryColor}20` }}
+      <main>
+        {/* Carrossel de imagens */}
+        <header style={{
+          paddingTop: '5px',
+          display: 'block',
+          maxWidth: '360px',
+          position: 'relative',
+          height: '20vh',
+          margin: '0 auto'
+        }}>
+          {carouselImages.length > 0 ? (
+            carouselImages.map((image, index) => (
+              <img
+                key={index}
+                className={`slide ${index === currentSlide ? 'active' : ''}`}
+                src={image}
+                alt={`Imagem ${index + 1}`}
+                loading={index === 0 ? 'eager' : 'lazy'}
+                style={{
+                  position: 'absolute',
+                  width: '100%',
+                  height: '100%',
+                  opacity: index === currentSlide ? 1 : 0,
+                  transition: 'opacity 0.5s ease-out, transform 0.5s ease-out',
+                  boxShadow: '2px 2px 6px rgba(0, 0, 0, 0.349)',
+                  borderRadius: '5px'
+                }}
+              />
+            ))
+          ) : (
+            <div style={{
+              position: 'absolute',
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: '#f3f4f6',
+              borderRadius: '5px',
+              color: '#6b7280',
+              fontSize: '14px',
+              textAlign: 'center',
+              padding: '20px'
+            }}>
+              Nenhuma imagem configurada
+            </div>
+          )}
+        </header>
+
+        {/* Caixa Plataforma */}
+        <div style={{
+          display: 'block',
+          margin: '20px auto',
+          maxWidth: '360px',
+          padding: '24px',
+          background: 'linear-gradient(135deg, rgba(255, 0, 128, 0.15), rgba(15, 14, 14, 0.85))',
+          borderRadius: '16px',
+          color: '#ffffff',
+          boxShadow: '0 6px 18px rgba(255, 0, 128, 0.25)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)'
+        }}>
+          <p style={{
+            textAlign: 'center',
+            fontSize: '1.6rem',
+            fontWeight: '500',
+            fontFamily: '"Bitcount Grid Double", system-ui',
+            background: 'linear-gradient(90deg, #ff007f, #ff4da6)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            textShadow: '0 0 6px rgba(255, 0, 127, 0.3)',
+            marginBottom: '16px'
+          }}>
+            PLATAFORMA:
+          </p>
+          
+          {clientCustomizations.platformLinks.length > 0 ? (
+            clientCustomizations.platformLinks.map((platform, index) => (
+              <div key={index} style={{
+                animation: 'pular 1.5s infinite',
+                display: 'flex',
+                flexDirection: 'column',
+                background: 'linear-gradient(135deg, #ff007f, #2d0d1f)',
+                padding: '4px',
+                marginTop: '8px',
+                borderRadius: '12px',
+                boxShadow: '0 4px 12px rgba(255, 0, 128, 0.25)',
+                gap: '1px',
+                color: '#ffffff'
+              }}>
+                <p style={{
+                  fontFamily: '"Bitcount Grid Double", system-ui',
+                  fontSize: '15px',
+                  color: '#ffe6f1',
+                  fontWeight: '400',
+                  textShadow: '0 0 4px rgb(0, 0, 0)',
+                  margin: 0
+                }}>{platform.name}</p>
+                <a 
+                  href={platform.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    fontSize: '13px',
+                    color: '#f1f1f1',
+                    fontWeight: '600',
+                    textDecoration: 'none'
+                  }}
                 >
-                  <TrendingUp 
-                    className="h-6 w-6" 
-                    style={{ color: clientData.primaryColor }}
-                  />
-                </div>
-                <span className="text-2xl font-bold text-gray-900">{clientData.companyName}</span>
+                  {platform.url}
+                </a>
               </div>
-              <p className="text-gray-600 mb-6">
-                Transformando traders em investidores de sucesso através de sinais precisos e educação financeira.
-              </p>
-              <div className="flex space-x-4">
-                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white">
-                  f
-                </div>
-                <div className="w-10 h-10 bg-pink-600 rounded-full flex items-center justify-center text-white">
-                  @
-                </div>
-                <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white">
-                  t
-                </div>
-              </div>
+            ))
+          ) : (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              background: 'linear-gradient(135deg, #ff007f, #2d0d1f)',
+              padding: '4px',
+              marginTop: '8px',
+              borderRadius: '12px',
+              boxShadow: '0 4px 12px rgba(255, 0, 128, 0.25)',
+              gap: '1px',
+              color: '#ffffff'
+            }}>
+              <p style={{
+                fontFamily: '"Bitcount Grid Double", system-ui',
+                fontSize: '15px',
+                color: '#ffe6f1',
+                fontWeight: '400',
+                textShadow: '0 0 4px rgb(0, 0, 0)',
+                margin: 0
+              }}>Nenhuma plataforma configurada</p>
+            </div>
+          )}
             </div>
 
-            <div>
-              <h4 className="font-bold text-gray-900 mb-6">Produto</h4>
-              <ul className="space-y-3 text-gray-600">
-                <li><a href="#" className="hover:text-blue-600 transition-colors">Sinais de Forex</a></li>
-                <li><a href="#" className="hover:text-blue-600 transition-colors">Sinais de Crypto</a></li>
-                <li><a href="#" className="hover:text-blue-600 transition-colors">Análises Técnicas</a></li>
-                <li><a href="#" className="hover:text-blue-600 transition-colors">App Mobile</a></li>
-              </ul>
+        {/* Botões de redes sociais */}
+        <div style={{
+          alignItems: 'center',
+          display: 'flex',
+          justifyContent: 'center',
+          margin: '20px 0'
+        }}>
+          <a 
+            href={clientCustomizations.whatsappLink}
+            style={{
+              textDecoration: 'none',
+              color: '#fff',
+              backgroundImage: 'linear-gradient(rgb(8, 180, 74), rgb(38, 90, 38))',
+              padding: '10px',
+              borderRadius: '5px',
+              position: 'relative',
+              fontSize: '11px',
+              fontWeight: 'bold',
+              animation: 'pulse 1.5s infinite',
+              display: 'inline-block',
+              textAlign: 'center',
+              whiteSpace: 'pre-wrap',
+              marginRight: '10px',
+              marginLeft: '10px'
+            }}
+          >
+            <p style={{ margin: 0 }}>WhatsApp</p>
+          </a>
+          
+          <a 
+            href={clientCustomizations.instagramLink}
+            style={{
+              textDecoration: 'none',
+              color: '#fff',
+              backgroundImage: 'repeating-linear-gradient(rgb(150, 11, 230), rgb(211, 81, 21), rgb(158, 143, 9))',
+              padding: '10px',
+              borderRadius: '5px',
+              position: 'relative',
+              fontSize: '11px',
+              fontWeight: 'bold',
+              animation: 'pulse 1.5s infinite',
+              display: 'inline-block',
+              textAlign: 'center',
+              whiteSpace: 'pre-wrap',
+              marginRight: '10px',
+              marginLeft: '10px'
+            }}
+          >
+            <p style={{ margin: 0 }}>Instagram</p>
+          </a>
+
+          <button 
+            onClick={scrollToComoJogar}
+            style={{
+              padding: '10px',
+              fontSize: '11px',
+              backgroundColor: '#28a745',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer',
+              animation: 'pulse 1.5s infinite',
+              fontWeight: 'bold'
+            }}
+          >
+            Como Jogar
+          </button>
             </div>
 
-            <div>
-              <h4 className="font-bold text-gray-900 mb-6">Suporte</h4>
-              <ul className="space-y-3 text-gray-600">
-                <li><a href="#" className="hover:text-blue-600 transition-colors">Central de Ajuda</a></li>
-                <li><a href="#" className="hover:text-blue-600 transition-colors">Contato</a></li>
-                <li><a href="#" className="hover:text-blue-600 transition-colors">FAQ</a></li>
-                <li><a href="#" className="hover:text-blue-600 transition-colors">Termos de Uso</a></li>
-              </ul>
+        {/* Informações do Bitcoin */}
+        <div style={{
+          textAlign: 'center',
+          margin: '20px 0',
+          fontSize: '16px',
+          color: '#ffffff'
+        }}>
+          <h1>Bitcoin</h1>
+          Analise atual: <span style={{ 
+            color: bitcoinStatus.includes('alta') ? 'rgb(13, 255, 13)' : 'rgb(255, 6, 6)' 
+          }}>{bitcoinStatus}</span><br />
+          Preço atual: R$<span style={{ 
+            color: bitcoinStatus.includes('alta') ? 'rgb(13, 255, 13)' : 'rgb(255, 6, 6)' 
+          }}>{bitcoinPrice}</span><br />
             </div>
 
-            <div>
-              <h4 className="font-bold text-gray-900 mb-6">Contato</h4>
-              <ul className="space-y-3 text-gray-600">
-                <li>suporte@{clientData.companyName.toLowerCase()}.com</li>
-                <li>+55 (11) 99999-9999</li>
-                <li>Segunda - Sexta: 9h às 18h</li>
-                <li>Sábado: 9h às 14h</li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="border-t border-gray-200 pt-8 text-center text-gray-600">
-            <p>© 2024 {clientData.companyName}. Todos os direitos reservados.</p>
+        {/* Informações em movimento */}
+        <div style={{
+          color: '#ffffff',
+          margin: 'auto',
+          maxWidth: '400px'
+        }}>
+          <div style={{
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            animation: 'scroll-left 20s linear infinite'
+          }}>
+            Ao abrir o site pela primeira vez, deixe aberto por 30 min <strong>SEM ATUALIZAR O SITE</strong> para uma analise mais precisa!. Porcentagens analisadas por IA com base no bitcoin para as <strong>PLATAFORMAS DESTE SITE.</strong>
           </div>
         </div>
-      </footer>
+
+        {/* Contador de próxima atualização */}
+        <div style={{
+          fontSize: '18px',
+          fontWeight: 'bold',
+          color: '#fff',
+          padding: '5px',
+          margin: '10px auto',
+          borderRadius: '8px',
+          width: 'fit-content'
+        }}>
+          <span>Próxima atualização em </span>
+          <span>{timer}</span>
+          </div>
+
+        {/* Botão para alternar entre tipos de jogos */}
+        <div style={{
+          display: 'flex',
+          margin: '10px auto',
+          justifyContent: 'center',
+          alignItems: 'center',
+          background: 'linear-gradient(135deg, #d6026c, #8e0057)',
+          color: '#ffffff',
+          fontWeight: '500',
+          fontSize: '0.95rem',
+          maxWidth: '225px',
+          height: '36px',
+          padding: '0 16px',
+          border: 'none',
+          borderRadius: '8px',
+          boxShadow: '0 4px 10px rgba(255, 0, 127, 0.35)',
+          cursor: 'pointer'
+        }}>
+          <button 
+            onClick={toggleGameType}
+            style={{
+              textDecoration: 'none',
+              fontFamily: 'Arial, Helvetica, sans-serif',
+              fontWeight: 'bold',
+              color: 'white',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: 'inherit'
+            }}
+          >
+            {currentGameType === 'PG' ? 'MUDAR PARA PP SLOTs' : 'MUDAR PARA PG SLOTs'}
+          </button>
+                </div>
+
+        {/* Container de jogos */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          padding: '0px',
+          maxWidth: '480px',
+          margin: 'auto'
+        }}>
+          {currentGames.map((jogo) => (
+            <div key={jogo.id} style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              padding: '4px',
+              margin: '5px',
+              width: '100px',
+              borderRadius: '5px',
+              backgroundColor: '#0f0e0e5e'
+            }}>
+              <div style={{ width: '100%' }}>
+                <img 
+                  src={jogo.imagem} 
+                  alt={`Jogo ${jogo.id}`}
+                  loading="lazy"
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    border: '1px solid #ccc',
+                    borderRadius: '5px'
+                  }}
+                />
+              </div>
+              
+              <div style={{
+                textAlign: 'center',
+                width: '100%',
+                borderRadius: '5px'
+              }}>
+                <p style={{
+                  fontSize: '0.6em',
+                  color: '#ffffff',
+                  margin: '5px 0'
+                }}>Aposta Padrão</p>
+                <div style={{
+                  paddingTop: '0px',
+                  paddingBottom: '0px',
+                  backgroundColor: getColor(progressBars[`bar${jogo.id}`] || 50),
+                  borderRadius: '5px',
+                  fontSize: '9px',
+                  fontWeight: 'bold',
+                  width: `${progressBars[`bar${jogo.id}`] || 50}%`,
+                  color: 'white',
+                  textAlign: 'center'
+                }}>
+                  {progressBars[`bar${jogo.id}`] || 50}%
+                </div>
+              </div>
+
+              <div style={{
+                textAlign: 'center',
+                width: '100%',
+                borderRadius: '5px'
+              }}>
+                <p style={{
+                  fontSize: '0.6em',
+                  color: '#ffffff',
+                  margin: '5px 0'
+                }}>Aposta Mínima</p>
+                <div style={{
+                  paddingTop: '0px',
+                  paddingBottom: '0px',
+                  backgroundColor: getColor(progressBars[`bar${jogo.id}_2`] || 50),
+                  borderRadius: '5px',
+                  fontSize: '9px',
+                  fontWeight: 'bold',
+                  width: `${progressBars[`bar${jogo.id}_2`] || 50}%`,
+                  color: 'white',
+                  textAlign: 'center'
+                }}>
+                  {progressBars[`bar${jogo.id}_2`] || 50}%
+                </div>
+              </div>
+              
+              <div style={{
+                textAlign: 'center',
+                width: '100%',
+                borderRadius: '5px'
+              }}>
+                <p style={{
+                  fontSize: '0.6em',
+                  color: '#ffffff',
+                  margin: '5px 0'
+                }}>Aposta Máxima</p>
+                <div style={{
+                  paddingTop: '0px',
+                  paddingBottom: '0px',
+                  backgroundColor: getColor(progressBars[`bar${jogo.id}_3`] || 50),
+                  borderRadius: '5px',
+                  fontSize: '9px',
+                  fontWeight: 'bold',
+                  width: `${progressBars[`bar${jogo.id}_3`] || 50}%`,
+                  color: 'white',
+                  textAlign: 'center'
+                }}>
+                  {progressBars[`bar${jogo.id}_3`] || 50}%
+                </div>
+              </div>
+              
+              <div style={{
+                color: 'rgb(255, 255, 255)',
+                fontSize: '9px',
+                width: '100px',
+                fontWeight: 'bolder',
+                marginTop: '5px',
+                borderRadius: '5px',
+                textAlign: 'center',
+                padding: '2px 4px'
+              }}>
+                Min Pagantes: {getRandomNumbers()}
+              </div>
+            </div>
+          ))}
+          </div>
+
+        {/* Botão para carregar mais jogos PG */}
+        {!allGamesLoaded && currentGameType === 'PG' && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            margin: '20px 0'
+          }}>
+            <button 
+              onClick={loadMoreGames}
+              style={{
+                padding: '12px 24px',
+                fontSize: '14px',
+                backgroundColor: '#28a745',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                boxShadow: '0 2px 8px rgba(40, 167, 69, 0.3)'
+              }}
+            >
+              Carregar Mais Jogos ({pgGames.length - 20} restantes)
+            </button>
+          </div>
+        )}
+
+        {/* Termos */}
+        <div style={{
+          display: 'block',
+          margin: '10px auto',
+          maxWidth: '400px',
+          padding: '10px',
+          backgroundColor: '#8f8f8f3f',
+          borderRadius: '10px',
+          color: 'white'
+        }}>
+          <p style={{ textAlign: 'center', margin: 0 }}>
+            <a 
+              href="/termos"
+              style={{
+                backgroundColor: '#218838',
+                padding: '5px 10px',
+                borderRadius: '5px',
+                textAlign: 'center',
+                color: '#fff',
+                textDecoration: 'none'
+              }}
+            >
+              Termos de Uso e Política de Privacidade
+            </a>
+          </p>
+        </div>
+
+        {/* Footer - Como Jogar */}
+        <div style={{ width: '100%' }}>
+          <footer 
+            id="como-jogar"
+            style={{
+              margin: '10px auto',
+              maxWidth: '400px',
+              backgroundColor: 'rgba(0, 0, 0, 0.459)',
+              height: 'auto',
+              textAlign: 'center',
+              border: '2px solid rgb(30, 255, 0)',
+              padding: '10px'
+            }}
+          >
+            <h1 style={{ marginBottom: '20px', color: 'white' }}>Como jogar</h1>
+            <p style={{ color: 'rgb(255, 255, 255)', textDecoration: 'none', fontWeight: 'bold', marginTop: '5px' }}>
+              Aposta Padrão = bet de R$1,00 a R$1,80
+            </p>
+            <p style={{ color: 'rgb(255, 255, 255)', textDecoration: 'none', fontWeight: 'bold', marginTop: '5px' }}>
+              Aposta Mínima = bet de R$0,40 a R$0,80.
+            </p>
+            <p style={{ color: 'rgb(255, 255, 255)', textDecoration: 'none', fontWeight: 'bold', marginTop: '5px' }}>
+              Aposta Máxima = bet de R$2,00 ou mais.
+            </p>
+            <br />
+
+            <p style={{ color: 'rgb(255, 255, 255)', textDecoration: 'none', fontWeight: 'bold', marginTop: '5px' }}>
+              Min pagantes: é o ultimo número do seu relógio , você deve jogar quando ele aparecer.
+            </p>
+            <p style={{ color: 'rgb(255, 255, 255)', textDecoration: 'none', fontWeight: 'bold', marginTop: '5px' }}>
+              Ex: min pagantes 3 e no relogio aparece 14:0(3) &lt;-
+            </p>
+            <br />
+
+            <h3 style={{ color: 'red', marginTop: '10px' }}>
+              🔞Aviso Legal:
+              Este site tem caráter meramente informativo e não realiza, promove ou incentiva apostas ou jogos de azar. As porcentagens exibidas são baseadas em dados públicos ou análises próprias e não garantem ganhos ou resultados. O usuário é inteiramente responsável por suas decisões ao utilizar qualquer plataforma mencionada. Verifique sempre as leis locais antes de participar de qualquer atividade relacionada a jogos de azar.
+            </h3>
+          </footer>
+        </div>
+      </main>
+
+      <style>{`
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        
+        html, body {
+          margin: 0;
+          padding: 0;
+          width: 100%;
+          overflow-x: hidden;
+        }
+
+        @keyframes pular {
+          100%, 100% {
+            transform: translateY(0);
+          }
+          30% {
+            transform: translateY(-3px);
+          }
+        }
+
+        @keyframes pulse {
+          0% {
+            box-shadow: 0 0 0 0 rgb(255, 255, 255);
+          }
+          30% {
+            box-shadow: 0 0 2px 2px rgb(255, 255, 255);
+          }
+          40% {
+            box-shadow: 0 0 2px 2px rgba(255, 255, 255, 0.274);
+          }
+          60% {
+            box-shadow: 0 0 2px 2px rgba(255, 255, 255, 0.301);
+          }
+          80% {
+            box-shadow: 0 0 2px 2px rgb(255, 255, 255);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.219);
+          }
+        }
+
+        @keyframes scroll-left {
+          0% {
+            transform: translateX(100%);
+          }
+          100% {
+            transform: translateX(-100%);
+          }
+        }
+
+        @media (max-width: 768px) {
+          body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            overflow-x: hidden;
+          }
+        }
+      `}</style>
     </div>
   );
 };

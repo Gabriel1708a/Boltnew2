@@ -1,0 +1,577 @@
+*{
+    margin: 0px;
+    padding: 0px;
+    box-sizing: border-box;
+    font-family: 'Roboto';
+    
+}
+
+
+@keyframes pular {
+    100%, 100% {
+      transform: translateY(0);
+    }
+    30% {
+      transform: translateY(-3px);
+    }
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgb(255, 255, 255);
+    }
+    30% {
+        box-shadow: 0 0 2px 2px rgb(255, 255, 255);
+    }
+    40% {
+        box-shadow: 0 0 2px 2px rgba(255, 255, 255, 0.274);
+    }
+    60% {
+        box-shadow: 0 0 2px 2px rgba(255, 255, 255, 0.301);
+    }
+    80% {
+        box-shadow: 0 0 2px 2px rgb(255, 255, 255);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.219);
+    }
+}
+
+
+/* Ajuste global */
+body {
+    background: linear-gradient(135deg, #0f0e0e 30%, #d8006c 100%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+.tech-circle {
+    z-index: -1;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.circle {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.11);
+}
+
+.circle:nth-child(1){
+    width: 200px;
+    height: 200px;
+    top: 5%;
+    left: 10%;
+}
+
+.circle:nth-child(2){
+    width: 300px;
+    height: 300px;
+    top: 60%;
+    left: 80%;
+}
+.circle:nth-child(3){
+    width: 150px;
+    height: 150px;
+    top: 70%;
+    left: 10%;
+}
+.circle:nth-child(4){
+    width: 120px;
+    height: 120px;
+    top: 5%;
+    left: 70%;
+}
+.circle:nth-child(5){
+    width: 60px;
+    height: 60px;
+    top: 80%;
+    left: 10%;
+}
+.circle:nth-child(6){
+    width: 120px;
+    height: 120px;
+    top: 58%;
+    left: 10%;
+}
+.circle:nth-child(7){
+    width: 120px;
+    height: 120px;
+    top: 90%;
+    left: 10%;
+}
+.circle:nth-child(8){
+    width: 120px;
+    height: 120px;
+    top: 20%;
+    left: 80%;
+}
+.circle:nth-child(9){
+    width: 400px;
+    height: 400px;
+    top: 30%;
+    left: 5%;
+}
+.circle:nth-child(10){
+    width: 170px;
+    height: 170px;
+    top: 40%;
+    left: 80%;
+}
+.circle:nth-child(11){
+    width: 170px;
+    height: 170px;
+    top: 80%;
+    left: 80%;
+}
+.circle:nth-child(12){
+    width: 170px;
+    height: 170px;
+    top: 20%;
+    left: 20%;
+    
+}
+
+
+/* Estilização do layout */
+.caixa {
+    display: flex;
+    width: 100%;
+}
+
+/* carrossel de imagens*/
+#carrossel {
+    padding-top: 5px;
+    display: block;
+    max-width: 360px;
+    position: relative;
+    height: 20vh;
+    margin: 0 auto;
+}
+.slide {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+
+.active {
+    opacity: 1;
+    transform: translateX(100);
+}
+
+.next {
+    transform: translateX(1%);
+}
+
+.prev {
+    transform: translateX(-30%);
+}
+
+img {
+    box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.349);
+    border-radius: 5px;
+    width: 100%;
+    height: 100%;
+}
+
+/* info */
+
+#info marquee{
+    margin-top: 0px;
+}
+
+/*Caixa- Plataforma*/
+
+.caixa-plataforma {
+    display: block;
+    margin: 20px auto;
+    max-width: 360px;
+    padding: 24px;
+    background: linear-gradient(135deg, rgba(255, 0, 128, 0.15), rgba(15, 14, 14, 0.85)); /* gradiente preto e pink translúcido */
+    border-radius: 16px;
+    color: #ffffff;
+    box-shadow: 0 6px 18px rgba(255, 0, 128, 0.25); /* sombra com tonalidade pink */
+    backdrop-filter: blur(10px); /* efeito vidro fosco aprimorado */
+    -webkit-backdrop-filter: blur(10px); /* compatibilidade Safari */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cp-titulo{
+    text-align: center;
+    font-size: 1.6rem;
+    font-weight: 500;
+    font-family: "Bitcount Grid Double", system-ui;
+
+    background: linear-gradient(90deg, #ff007f, #ff4da6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+
+    text-shadow: 0 0 6px rgba(255, 0, 127, 0.3);
+    margin-bottom: 16px;
+}
+
+.caixa-plataforma div {
+    animation: pular 1.5s infinite;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(135deg, #ff007f, #2d0d1f); /* gradiente pink profundo com base escura */
+    padding: 4px;
+    margin-top: 8px;
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(255, 0, 128, 0.25); /* sombra com leve tom rosa para destacar */
+    gap: 1px;
+    color: #ffffff;
+}
+
+.caixa-plataforma div a {
+    font-size: 13px;
+    color: #f1f1f1;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.caixa-plataforma div p {
+    font-family: "Bitcount Grid Double", system-ui;
+    font-size: 15px;
+    color: #ffe6f1; /* tom rosado suave para leitura confortável */
+    font-weight: 400;
+
+
+    text-shadow: 0 0 4px rgb(0, 0, 0); /* leve brilho pink para profundidade */
+}
+
+
+
+/*botoes redirecionar*/
+
+.grupo {
+    align-items: center;
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+
+.grupo a {
+    /*/background-image: url('img/IMAGENS SITE/nostalgia.jpg');*/
+    text-decoration: none;
+    color: #fff;
+    background-color: #1e2429;
+    padding: 10px;
+    border-radius: 5px;
+    position: relative;
+    font-size: 11px;
+    font-weight: bold;
+    animation: pulse 1.5s infinite;
+    display: inline-block;
+    width: auto; /* Remover a largura fixa */
+    text-align: center; /* Alinhar o texto centralmente */
+    white-space: pre-wrap; /* Permite controlar onde as quebras de linha ocorrem */
+    margin-right: 10px; /* Ajuste o espaçamento conforme necessário */
+    margin-left: 10px;
+}
+
+
+/* cores botao whatzap grupo , instagran e horarios*/
+#whatzap {
+    background-image: linear-gradient(rgb(8, 180, 74) ,rgb(38, 90, 38));
+}
+
+#instagran {
+    background-image: repeating-linear-gradient(rgb(150, 11, 230),rgb(211, 81, 21), rgb(158, 143, 9));
+}
+
+#facebook {
+    background-image: repeating-linear-gradient(rgb(11, 33, 230),rgb(21, 110, 211), rgb(36, 9, 158));
+}
+
+#horarios {
+    background-image: linear-gradient(rgb(7, 7, 7),rgb(70, 68, 68));
+}
+
+
+/* Botão como jogar*/
+
+button {
+    padding: 10px;
+    font-size: 11px;
+    background-color: #28a745;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    animation: pulse 1.5s infinite;
+    font-weight: bold;
+}
+button:hover {
+    background-color: #218838;
+}
+
+
+/*bitcoin*/
+.biticoin {
+    text-align: center;
+    margin: 20px 0;
+    font-size: 16px;
+    color: #ffffff;
+}
+
+.biticoin a {
+    color: #ee6b00; /* Cor do texto dos links */
+    text-decoration: none;
+    font-family: "Archivo Black";
+    font-size: 16px; /* Tamanho da fonte */
+    margin: 0 10px; /* Espaçamento entre os links */
+    margin-top: 20px;
+    color: #fff;
+    background-color: #5a687a;
+    padding: 5px;
+    border-radius: 5px;
+    position: relative;
+    font-size: 15px;
+    animation: pulse 1.5s infinite;
+    display: inline-block;
+    width: 200px; /* Set a fixed width for the button */
+    text-align: center; /* Center-align the text within the button */
+    white-space: pre-wrap; /* Allows you to control where the line breaks */
+}
+
+.up {
+    color: rgb(13, 255, 13);
+}
+
+.down {
+    color: rgb(255, 6, 6);
+}
+
+#info {
+    color: #ffffff;
+    margin: auto;
+    max-width: 400px;
+}
+
+/* Botão termos*/
+
+.termos-container {
+    display: block;
+    margin: 10px auto;
+    max-width: 400px;
+    padding: 10px;
+    background-color: #8f8f8f3f;
+    border-radius: 10px;
+    color: white;
+}
+
+.termos-container p {
+    text-align: center;
+
+}
+
+.termos-container p a {
+    background-color: #218838;
+    padding: 5px 10px;
+    border-radius: 5px;
+    text-align: center;
+    color: #fff;
+    
+}
+
+/*Botao troca de jogos*/
+.button {
+    display: flex;
+    margin: 10px auto;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #d6026c, #8e0057); /* gradiente pink intenso */
+    color: #ffffff;
+    font-weight: 500;
+    font-size: 0.95rem;
+    max-width: 225px;
+    height: 36px;
+    padding: 0 16px;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(255, 0, 127, 0.35); /* sombra pink suave */
+    cursor: pointer;
+}
+
+.button a {
+    text-decoration: none;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: bold;
+    color: white;
+}
+
+
+
+/* container de jogos*/
+.container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 0px;
+    max-width: 480px;
+    margin: auto;
+}
+
+
+.square-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px;
+    margin: 5px;
+    width: 100px;
+    border-radius: 5px;
+    background-color: #0f0e0e5e;
+}
+
+.square img {
+    width: 100%;
+    height: auto;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.progress-bar-container {
+    text-align: center;
+    width: 100%;
+    background-image: linear-gradient(transparent,transparent,);
+    border-radius: 5px;
+}
+
+.progress-bar-container p {
+    font-size: 0.6em;
+    color: #ffffff;
+}
+
+.progress-bar {
+    padding-top: 0px;
+    padding-bottom: 0px;
+    background-color: #76c7c0;
+    border-radius: 5px;
+    font-size: 9px;
+    font-weight: bold;
+}
+
+.square-containerfooter {
+    width: 100%;
+
+}
+
+
+footer {
+    margin: 10px auto;
+    max-width: 400px;
+    background-color: rgba(0, 0, 0, 0.459);
+    height: auto;
+    text-align: center;
+    border: 2px solid rgb(30, 255, 0);
+    padding: 10px;
+
+}
+footer h1 {
+    margin-bottom: 20px;
+    color: white;
+}
+
+#recomendo {
+    margin-top: 10px;
+    margin-bottom: 20px;
+}
+
+footer h3 {
+    color: red;
+    margin-top: 10PX;
+}
+
+footer p {
+    color: rgb(255, 255, 255);
+    text-decoration: none;
+    font-weight: bold;
+    margin-top: 5px;
+    
+}
+
+/*min pagantes*/
+
+.min-pagantes {
+    color: rgb(255, 255, 255);
+    font-size: 9px;
+    width: 100px;
+    font-weight: bolder;
+    margin-top: 5px;
+    border-radius: 5px;
+    text-align: center;
+    padding: 2px 4px 2px 4px;
+}
+
+
+/*=========== Modal ============*/
+
+#modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.6);
+}
+
+#modal-content {
+    background-color: #fff;
+    margin: 10% auto;
+    padding: 20px;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 500px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+
+#close-btn {
+    float: right;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+iframe {
+    width: 100%;
+    height: 300px;
+    border: none;
+    margin-top: 10px;
+}
+
+#nao-mostrar {
+    margin-top: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+label {
+    cursor: pointer;
+}
+
+/* contagem regressiva*/
+
+#contador-proxima-atualizacao {
+  font-size: 18px;
+  font-weight: bold;
+  color: #fff;
+  padding: 5px;
+  margin: 10px auto;
+  border-radius: 8px;
+  width: fit-content;
+}
+
