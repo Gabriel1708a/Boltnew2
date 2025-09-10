@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useAuth } from './AuthContext';
-import { customizationService } from '../services/customizationService';
 
 export interface CarouselImageData {
   type: 'url' | 'file';
@@ -40,6 +39,7 @@ interface CustomizationContextType {
   updateCarouselImages: (images: CarouselImageData[]) => void;
   updatePlatformLinks: (links: PlatformLink[]) => void;
   getClientCustomizations: (clientId: string) => ClientCustomizations;
+  saveCustomizationsGlobally: (customizations: ClientCustomizations) => Promise<void>;
 }
 
 const defaultCustomizations: ClientCustomizations = {
@@ -69,38 +69,44 @@ const defaultCustomizations: ClientCustomizations = {
     { type: 'url', value: "https://laysinais.netlify.app/img/IMAGENS%20SITE/3.jpeg" },
     { type: 'url', value: "https://laysinais.netlify.app/img/IMAGENS%20SITE/4.jpeg" }
   ],
-  platformLinks: [],
+  platformLinks: [
+    { name: "777 CLUBE", url: "https://777boat.net/?id=232676057" },
+    { name: "GRUPO W1", url: "https://w1-shawlpg.com/?id=687313071" },
+    { name: "GRUPO 999", url: "https://999sincero.bet/?id=160469960" }
+  ],
   whatsappLink: 'https://chat.whatsapp.com/JzoNzkKYIYl1sWjS0Gdgic?mode=ems_copy_c',
   instagramLink: 'https://www.instagram.com/layaneslots9217?igsh=MXJ3dDZnaThxeGx6NA=='
 };
 
-// Função para carregar customizações globalmente (com fallback para localStorage)
-const loadClientCustomizations = async (clientId: string): Promise<ClientCustomizations | null> => {
+// Sistema de armazenamento global para compartilhar customizações
+const STORAGE_PREFIX = 'global-client-customizations-';
+
+// Função para salvar customizações globalmente (acessível para qualquer pessoa)
+const saveGlobalCustomizations = (clientId: string, customizations: ClientCustomizations): void => {
   try {
-    console.log('Tentando carregar customizações globais para:', clientId);
-    
-    // Primeiro, tenta carregar do serviço global
-    const globalCustomizations = await customizationService.loadClientCustomizations(clientId);
-    
-    if (globalCustomizations) {
-      console.log('Customizações carregadas do serviço global:', globalCustomizations);
-      return globalCustomizations;
-    }
-    
-    // Fallback para localStorage (para compatibilidade com dados existentes)
-    const key = `client-customizations-${clientId}`;
-    console.log('Tentando fallback no localStorage:', key);
+    const key = `${STORAGE_PREFIX}${clientId}`;
+    const data = JSON.stringify(customizations);
+    localStorage.setItem(key, data);
+    console.log(`Customizações salvas globalmente para cliente ${clientId}:`, customizations);
+  } catch (error) {
+    console.error(`Erro ao salvar customizações globalmente para ${clientId}:`, error);
+  }
+};
+
+// Função para carregar customizações globalmente
+const loadGlobalCustomizations = (clientId: string): ClientCustomizations | null => {
+  try {
+    const key = `${STORAGE_PREFIX}${clientId}`;
     const stored = localStorage.getItem(key);
     
     if (stored) {
       const parsed = JSON.parse(stored);
-      console.log('Dados encontrados no localStorage:', parsed);
+      console.log(`Customizações globais carregadas para cliente ${clientId}:`, parsed);
       
-      // Migrar dados antigos - garantir que todas as propriedades existam
+      // Migração de dados antigos se necessário
       const migrated = {
         ...defaultCustomizations,
         ...parsed,
-        // Migrar carouselImages se for array de strings
         carouselImages: Array.isArray(parsed.carouselImages) 
           ? parsed.carouselImages.map((img: any) => 
               typeof img === 'string' 
@@ -108,68 +114,29 @@ const loadClientCustomizations = async (clientId: string): Promise<ClientCustomi
                 : img
             )
           : defaultCustomizations.carouselImages,
-        // Garantir que platformLinks existe
-        platformLinks: parsed.platformLinks || defaultCustomizations.platformLinks,
-        // Garantir que os links de redes sociais existem
-        whatsappLink: parsed.whatsappLink || defaultCustomizations.whatsappLink,
-        instagramLink: parsed.instagramLink || defaultCustomizations.instagramLink,
-        // Garantir que backgroundColor existe
-        backgroundColor: parsed.backgroundColor || defaultCustomizations.backgroundColor
+        platformLinks: parsed.platformLinks || defaultCustomizations.platformLinks
       };
-      
-      console.log('Dados migrados do localStorage:', migrated);
-      
-      // Salvar no serviço global para sincronização
-      await customizationService.saveClientCustomizations(clientId, migrated);
       
       return migrated;
     }
   } catch (error) {
-    console.error('Erro ao carregar customizações:', error);
+    console.error(`Erro ao carregar customizações globais para ${clientId}:`, error);
   }
   
-  console.log('Nenhum dado encontrado, retornando null');
   return null;
 };
 
-// Função para salvar customizações globalmente
-const saveClientCustomizations = async (clientId: string, customizations: ClientCustomizations): Promise<boolean> => {
-  try {
-    console.log('Salvando customizações globalmente para:', clientId);
-    
-    // Salva no serviço global
-    const success = await customizationService.saveClientCustomizations(clientId, customizations);
-    
-    if (success) {
-      console.log('Customizações salvas com sucesso no serviço global');
-      return true;
-    } else {
-      console.error('Falha ao salvar no serviço global');
-      return false;
-    }
-  } catch (error) {
-    console.error('Erro ao salvar customizações globalmente:', error);
-    return false;
-  }
-};
-
-
-// Simulação de banco de dados de customizações por cliente (fallback)
+// Banco de dados simulado para fallback
 const clientCustomizationsDB: { [clientId: string]: ClientCustomizations } = {
   'client-1': {
     ...defaultCustomizations,
     companyName: 'Cliente 1 - TradingPro',
     heroTitle: 'Sinais Profissionais - Cliente 1',
-    carouselImages: [
-      { type: 'url', value: "https://laysinais.netlify.app/img/IMAGENS%20SITE/1.jpeg" },
-      { type: 'url', value: "https://laysinais.netlify.app/img/IMAGENS%20SITE/2.jpeg" },
-      { type: 'url', value: "https://laysinais.netlify.app/img/IMAGENS%20SITE/3.jpeg" },
-      { type: 'url', value: "https://laysinais.netlify.app/img/IMAGENS%20SITE/4.jpeg" }
-    ],
-    platformLinks: [],
-    whatsappLink: 'https://chat.whatsapp.com/JzoNzkKYIYl1sWjS0Gdgic?mode=ems_copy_c',
-    instagramLink: 'https://www.instagram.com/layaneslots9217?igsh=MXJ3dDZnaThxeGx6NA==',
-    backgroundColor: 'linear-gradient(135deg, #0f0e0e 30%, #d8006c 100%)'
+    platformLinks: [
+      { name: "777 CLUBE", url: "https://777boat.net/?id=232676057" },
+      { name: "GRUPO W1", url: "https://w1-shawlpg.com/?id=687313071" },
+      { name: "GRUPO 999", url: "https://999sincero.bet/?id=160469960" }
+    ]
   },
   'client-2': {
     ...defaultCustomizations,
@@ -181,10 +148,10 @@ const clientCustomizationsDB: { [clientId: string]: ClientCustomizations } = {
       { type: 'url', value: "https://laysinais.netlify.app/img/IMAGENS%20SITE/1.jpeg" },
       { type: 'url', value: "https://laysinais.netlify.app/img/IMAGENS%20SITE/2.jpeg" }
     ],
-    platformLinks: [],
-    whatsappLink: 'https://chat.whatsapp.com/JzoNzkKYIYl1sWjS0Gdgic?mode=ems_copy_c',
-    instagramLink: 'https://www.instagram.com/layaneslots9217?igsh=MXJ3dDZnaThxeGx6NA==',
-    backgroundColor: 'linear-gradient(135deg, #0f0e0e 30%, #d8006c 100%)'
+    platformLinks: [
+      { name: "777 CLUBE", url: "https://777boat.net/?id=232676057" },
+      { name: "GRUPO W1", url: "https://w1-shawlpg.com/?id=687313071" }
+    ]
   },
   'client-3': {
     ...defaultCustomizations,
@@ -196,10 +163,9 @@ const clientCustomizationsDB: { [clientId: string]: ClientCustomizations } = {
       { type: 'url', value: "https://laysinais.netlify.app/img/IMAGENS%20SITE/3.jpeg" },
       { type: 'url', value: "https://laysinais.netlify.app/img/IMAGENS%20SITE/4.jpeg" }
     ],
-    platformLinks: [],
-    whatsappLink: 'https://chat.whatsapp.com/JzoNzkKYIYl1sWjS0Gdgic?mode=ems_copy_c',
-    instagramLink: 'https://www.instagram.com/layaneslots9217?igsh=MXJ3dDZnaThxeGx6NA==',
-    backgroundColor: 'linear-gradient(135deg, #0f0e0e 30%, #d8006c 100%)'
+    platformLinks: [
+      { name: "GRUPO 999", url: "https://999sincero.bet/?id=160469960" }
+    ]
   },
   'client-4': {
     ...defaultCustomizations,
@@ -212,10 +178,11 @@ const clientCustomizationsDB: { [clientId: string]: ClientCustomizations } = {
       { type: 'url', value: "https://laysinais.netlify.app/img/IMAGENS%20SITE/3.jpeg" },
       { type: 'url', value: "https://laysinais.netlify.app/img/IMAGENS%20SITE/4.jpeg" }
     ],
-    platformLinks: [],
-    whatsappLink: 'https://chat.whatsapp.com/JzoNzkKYIYl1sWjS0Gdgic?mode=ems_copy_c',
-    instagramLink: 'https://www.instagram.com/layaneslots9217?igsh=MXJ3dDZnaThxeGx6NA==',
-    backgroundColor: 'linear-gradient(135deg, #0f0e0e 30%, #d8006c 100%)'
+    platformLinks: [
+      { name: "777 CLUBE", url: "https://777boat.net/?id=232676057" },
+      { name: "GRUPO W1", url: "https://w1-shawlpg.com/?id=687313071" },
+      { name: "GRUPO 999", url: "https://999sincero.bet/?id=160469960" }
+    ]
   }
 };
 
@@ -226,8 +193,6 @@ export const CustomizationProvider: React.FC<{ children: ReactNode }> = ({ child
   const [customizations, setCustomizations] = useState<ClientCustomizations>(defaultCustomizations);
 
   console.log('CustomizationProvider renderizado, user:', user);
-  console.log('Estado atual das customizações:', customizations);
-
 
   // Carregar customizações do cliente logado
   useEffect(() => {
@@ -235,212 +200,90 @@ export const CustomizationProvider: React.FC<{ children: ReactNode }> = ({ child
     if (user?.clientId) {
       console.log('Carregando customizações para cliente:', user.clientId);
       
-      const loadCustomizations = async () => {
-        try {
-          // Primeiro, tenta carregar do serviço global (dados compartilhados)
-          const globalCustomizations = await loadClientCustomizations(user.clientId);
-          
-          if (globalCustomizations) {
-            console.log('Customizações carregadas do serviço global no useEffect:', globalCustomizations);
-            setCustomizations(globalCustomizations);
-            
-            // Atualiza o localStorage com os dados globais
-            const localKey = `client-customizations-${user.clientId}`;
-            localStorage.setItem(localKey, JSON.stringify(globalCustomizations));
-            return;
-          }
-          
-          // Se não há dados globais, verifica localStorage como fallback
-          const localKey = `client-customizations-${user.clientId}`;
-          const localData = localStorage.getItem(localKey);
-          
-          if (localData) {
-            const parsed = JSON.parse(localData);
-            console.log('Dados encontrados no localStorage como fallback:', parsed);
-            
-            // Garantir que todos os campos existem
-            const migrated = {
-              ...defaultCustomizations,
-              ...parsed,
-              carouselImages: Array.isArray(parsed.carouselImages) 
-                ? parsed.carouselImages.map((img: any) => 
-                    typeof img === 'string' 
-                      ? { type: 'url', value: img } 
-                      : img
-                  )
-                : defaultCustomizations.carouselImages,
-              platformLinks: parsed.platformLinks || defaultCustomizations.platformLinks,
-              whatsappLink: parsed.whatsappLink || defaultCustomizations.whatsappLink,
-              instagramLink: parsed.instagramLink || defaultCustomizations.instagramLink,
-              backgroundColor: parsed.backgroundColor || defaultCustomizations.backgroundColor
-            };
-            
-            console.log('Definindo customizações do localStorage no useEffect:', migrated);
-            setCustomizations(migrated);
-            
-            // Tenta sincronizar com o armazenamento global
-            await saveClientCustomizations(user.clientId, migrated);
-            return;
-          }
-          
-          // Último recurso: banco simulado
-          const fallbackCustomizations = clientCustomizationsDB[user.clientId] || defaultCustomizations;
-          console.log('Usando customizações de fallback no useEffect:', fallbackCustomizations);
-          setCustomizations(fallbackCustomizations);
-          
-          // Salva no armazenamento global e localStorage
-          await saveClientCustomizations(user.clientId, fallbackCustomizations);
-        } catch (error) {
-          console.error('Erro ao carregar customizações no useEffect:', error);
-          // Em caso de erro, usa o fallback
-          const fallbackCustomizations = clientCustomizationsDB[user.clientId] || defaultCustomizations;
-          setCustomizations(fallbackCustomizations);
-        }
-      };
+      // Tenta carregar customizações globais primeiro
+      const globalCustomizations = loadGlobalCustomizations(user.clientId);
       
-      loadCustomizations();
+      if (globalCustomizations) {
+        console.log('Customizações globais encontradas:', globalCustomizations);
+        setCustomizations(globalCustomizations);
+        return;
+      }
+      
+      // Fallback para banco simulado
+      const fallbackCustomizations = clientCustomizationsDB[user.clientId] || defaultCustomizations;
+      console.log('Usando customizações de fallback:', fallbackCustomizations);
+      setCustomizations(fallbackCustomizations);
+      
+      // Salva no armazenamento global para próximas vezes
+      saveGlobalCustomizations(user.clientId, fallbackCustomizations);
     }
   }, [user?.clientId]);
 
-  // Monitorar mudanças no estado das customizações
-  useEffect(() => {
-    console.log('Estado das customizações foi atualizado:', customizations);
-  }, [customizations]);
+  const saveCustomizationsGlobally = async (newCustomizations: ClientCustomizations) => {
+    if (user?.clientId) {
+      console.log('Salvando customizações globalmente para cliente:', user.clientId);
+      
+      // Atualiza o estado local
+      setCustomizations(newCustomizations);
+      
+      // Salva globalmente para que outros usuários vejam
+      saveGlobalCustomizations(user.clientId, newCustomizations);
+      
+      // Também atualiza o banco simulado
+      clientCustomizationsDB[user.clientId] = newCustomizations;
+      
+      console.log('Customizações salvas com sucesso globalmente!');
+    }
+  };
 
-  const updateCarouselImages = async (images: CarouselImageData[]) => {
+  const updateCarouselImages = (images: CarouselImageData[]) => {
     if (user?.clientId) {
       const updatedCustomizations = {
         ...customizations,
         carouselImages: images
       };
+      
       setCustomizations(updatedCustomizations);
+      saveGlobalCustomizations(user.clientId, updatedCustomizations);
+      clientCustomizationsDB[user.clientId] = updatedCustomizations;
       
-      // Salva imediatamente no localStorage
-      const localKey = `client-customizations-${user.clientId}`;
-      localStorage.setItem(localKey, JSON.stringify(updatedCustomizations));
-      
-      try {
-        // Salvar globalmente
-        await saveClientCustomizations(user.clientId, updatedCustomizations);
-        // Também salvar no "banco de dados" simulado como fallback
-        clientCustomizationsDB[user.clientId] = updatedCustomizations;
-      } catch (error) {
-        console.error('Erro ao salvar imagens do carrossel:', error);
-      }
+      console.log('Imagens do carrossel atualizadas globalmente');
     }
   };
 
-  const updatePlatformLinks = async (links: PlatformLink[]) => {
+  const updatePlatformLinks = (links: PlatformLink[]) => {
     if (user?.clientId) {
       console.log('updatePlatformLinks chamado com:', links);
       const updatedCustomizations = {
         ...customizations,
         platformLinks: links
       };
-      console.log('Customizações atualizadas:', updatedCustomizations);
+      
       setCustomizations(updatedCustomizations);
+      saveGlobalCustomizations(user.clientId, updatedCustomizations);
+      clientCustomizationsDB[user.clientId] = updatedCustomizations;
       
-      // Salva imediatamente no localStorage
-      const localKey = `client-customizations-${user.clientId}`;
-      localStorage.setItem(localKey, JSON.stringify(updatedCustomizations));
-      console.log('Dados salvos imediatamente no localStorage');
-      
-      try {
-        // Salvar globalmente
-        console.log('Salvando globalmente para cliente:', user.clientId);
-        await saveClientCustomizations(user.clientId, updatedCustomizations);
-        // Também salvar no "banco de dados" simulado como fallback
-        clientCustomizationsDB[user.clientId] = updatedCustomizations;
-        console.log('Dados salvos globalmente e no banco simulado');
-      } catch (error) {
-        console.error('Erro ao salvar links de plataformas:', error);
-      }
-    }
-  };
-
-  const setCustomizationsForClient = async (newCustomizations: ClientCustomizations) => {
-    if (user?.clientId) {
-      console.log('setCustomizationsForClient chamado para:', user.clientId, newCustomizations);
-      
-      // Atualiza o estado imediatamente
-      setCustomizations(newCustomizations);
-      
-      // Salva imediatamente no localStorage para garantir persistência
-      const localKey = `client-customizations-${user.clientId}`;
-      localStorage.setItem(localKey, JSON.stringify(newCustomizations));
-      console.log('Dados salvos imediatamente no localStorage:', localKey);
-      
-      try {
-        // Salvar globalmente (assíncrono)
-        await saveClientCustomizations(user.clientId, newCustomizations);
-        console.log('Dados salvos globalmente com sucesso');
-        
-        // Também salvar no "banco de dados" simulado como fallback
-        clientCustomizationsDB[user.clientId] = newCustomizations;
-        console.log('Dados salvos no banco simulado');
-      } catch (error) {
-        console.error('Erro ao salvar customizações globalmente:', error);
-        // Mesmo com erro global, os dados estão no localStorage
-      }
+      console.log('Links de plataformas atualizados globalmente');
     }
   };
 
   const getClientCustomizations = (clientId: string): ClientCustomizations => {
     console.log('getClientCustomizations chamado para:', clientId);
     
-    // Tenta carregar assincronamente do serviço global em background
-    loadClientCustomizations(clientId).then(globalCustomizations => {
-      if (globalCustomizations) {
-        console.log('Dados globais carregados em background para', clientId, ':', globalCustomizations);
-        // Salva no localStorage para próxima vez
-        const localKey = `client-customizations-${clientId}`;
-        localStorage.setItem(localKey, JSON.stringify(globalCustomizations));
-        
-        // Se for o cliente atual, atualiza o estado
-        if (user?.clientId === clientId) {
-          setCustomizations(globalCustomizations);
-        }
-      }
-    }).catch(error => {
-      console.error('Erro ao carregar customizações globais em background:', error);
-    });
+    // Tenta carregar customizações globais primeiro
+    const globalCustomizations = loadGlobalCustomizations(clientId);
     
-    // Enquanto isso, retorna dados do localStorage ou fallback
-    try {
-      const localKey = `client-customizations-${clientId}`;
-      const localData = localStorage.getItem(localKey);
-      
-      if (localData) {
-        const parsed = JSON.parse(localData);
-        console.log('Dados encontrados no localStorage para', clientId, ':', parsed);
-        
-        // Garantir que todos os campos existem
-        const migrated = {
-          ...defaultCustomizations,
-          ...parsed,
-          carouselImages: Array.isArray(parsed.carouselImages) 
-            ? parsed.carouselImages.map((img: any) => 
-                typeof img === 'string' 
-                  ? { type: 'url', value: img } 
-                  : img
-              )
-            : defaultCustomizations.carouselImages,
-          platformLinks: parsed.platformLinks || defaultCustomizations.platformLinks,
-          whatsappLink: parsed.whatsappLink || defaultCustomizations.whatsappLink,
-          instagramLink: parsed.instagramLink || defaultCustomizations.instagramLink,
-          backgroundColor: parsed.backgroundColor || defaultCustomizations.backgroundColor
-        };
-        
-        console.log('Retornando dados migrados do localStorage:', migrated);
-        return migrated;
-      }
-    } catch (error) {
-      console.error('Erro ao carregar do localStorage:', error);
+    if (globalCustomizations) {
+      console.log('Customizações globais encontradas para', clientId);
+      return globalCustomizations;
     }
     
-    // Último recurso: banco simulado
+    // Fallback para banco simulado
     const fallbackCustomizations = clientCustomizationsDB[clientId] || defaultCustomizations;
-    console.log('Retornando fallback para', clientId, ':', fallbackCustomizations);
+    console.log('Usando fallback para', clientId);
+    
+    // Salva no armazenamento global se não existir
+    saveGlobalCustomizations(clientId, fallbackCustomizations);
     
     return fallbackCustomizations;
   };
@@ -448,10 +291,11 @@ export const CustomizationProvider: React.FC<{ children: ReactNode }> = ({ child
   return (
     <CustomizationContext.Provider value={{
       customizations,
-      setCustomizations: setCustomizationsForClient,
+      setCustomizations: saveCustomizationsGlobally,
       updateCarouselImages,
       updatePlatformLinks,
-      getClientCustomizations
+      getClientCustomizations,
+      saveCustomizationsGlobally
     }}>
       {children}
     </CustomizationContext.Provider>
