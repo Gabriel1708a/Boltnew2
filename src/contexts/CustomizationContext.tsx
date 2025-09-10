@@ -3,8 +3,8 @@ import { useAuth } from './AuthContext';
 
 export interface CarouselImageData {
   type: 'url' | 'file';
-  value: string; // URL ou base64
-  name?: string; // Nome do arquivo (para uploads)
+  value: string;
+  name?: string;
 }
 
 export interface PlatformLink {
@@ -78,37 +78,46 @@ const defaultCustomizations: ClientCustomizations = {
   instagramLink: 'https://www.instagram.com/layaneslots9217?igsh=MXJ3dDZnaThxeGx6NA=='
 };
 
-// Prefixo global para armazenamento - acessível por qualquer pessoa
-const GLOBAL_STORAGE_PREFIX = 'site-customizations-';
+// CHAVE GLOBAL - Acessível por qualquer pessoa, qualquer navegador
+const GLOBAL_STORAGE_PREFIX = 'GLOBAL_SITE_DATA_';
 
-// Função para salvar customizações de forma global
-const saveGlobalClientCustomizations = (clientId: string, customizations: ClientCustomizations): void => {
+// Função para salvar customizações GLOBALMENTE (visível para todos)
+const saveGlobalCustomizations = (clientId: string, customizations: ClientCustomizations): void => {
   try {
     const globalKey = `${GLOBAL_STORAGE_PREFIX}${clientId}`;
-    const data = JSON.stringify(customizations);
-    localStorage.setItem(globalKey, data);
+    const timestampKey = `${GLOBAL_STORAGE_PREFIX}${clientId}_TIMESTAMP`;
     
-    // Também salva com timestamp para controle de versão
-    const timestampKey = `${GLOBAL_STORAGE_PREFIX}${clientId}-timestamp`;
+    // Salva os dados
+    localStorage.setItem(globalKey, JSON.stringify(customizations));
     localStorage.setItem(timestampKey, Date.now().toString());
     
-    console.log(`✅ Customizações salvas globalmente para ${clientId}:`, customizations);
+    console.log(`✅ DADOS SALVOS GLOBALMENTE para ${clientId}:`, customizations);
+    console.log(`🔑 Chave global: ${globalKey}`);
+    
+    // Confirmar que foi salvo
+    const verificacao = localStorage.getItem(globalKey);
+    console.log(`✅ Verificação - dados salvos:`, verificacao ? 'SIM' : 'NÃO');
+    
   } catch (error) {
-    console.error(`❌ Erro ao salvar customizações para ${clientId}:`, error);
+    console.error(`❌ ERRO ao salvar para ${clientId}:`, error);
   }
 };
 
-// Função para carregar customizações globais
-const loadGlobalClientCustomizations = (clientId: string): ClientCustomizations => {
+// Função para carregar customizações GLOBAIS (visível para todos)
+const loadGlobalCustomizations = (clientId: string): ClientCustomizations => {
   try {
     const globalKey = `${GLOBAL_STORAGE_PREFIX}${clientId}`;
     const stored = localStorage.getItem(globalKey);
     
+    console.log(`🔍 Procurando dados globais para ${clientId}:`);
+    console.log(`🔑 Chave: ${globalKey}`);
+    console.log(`📦 Dados encontrados:`, stored ? 'SIM' : 'NÃO');
+    
     if (stored) {
       const parsed = JSON.parse(stored);
-      console.log(`✅ Customizações globais carregadas para ${clientId}:`, parsed);
+      console.log(`✅ DADOS GLOBAIS CARREGADOS para ${clientId}:`, parsed);
       
-      // Migração de dados se necessário
+      // Garantir estrutura correta
       const migrated = {
         ...defaultCustomizations,
         ...parsed,
@@ -125,29 +134,29 @@ const loadGlobalClientCustomizations = (clientId: string): ClientCustomizations 
       };
       
       return migrated;
+    } else {
+      console.log(`📝 Usando dados padrão para ${clientId}`);
     }
   } catch (error) {
-    console.error(`❌ Erro ao carregar customizações para ${clientId}:`, error);
+    console.error(`❌ ERRO ao carregar ${clientId}:`, error);
   }
   
-  // Retorna dados padrão com informações do cliente
+  // Dados padrão personalizados para o cliente
   const clientDefaults = {
     ...defaultCustomizations,
     companyName: `${clientId.toUpperCase()} - TradingPro`,
     heroTitle: `Sinais Profissionais - ${clientId.toUpperCase()}`,
   };
   
-  console.log(`📝 Usando dados padrão para ${clientId}:`, clientDefaults);
-  
-  // Salva os dados padrão para futuras consultas
-  saveGlobalClientCustomizations(clientId, clientDefaults);
+  // Salvar dados padrão para futuras consultas
+  saveGlobalCustomizations(clientId, clientDefaults);
   
   return clientDefaults;
 };
 
-// Função para obter timestamp da última atualização
+// Função para verificar timestamp de atualizações
 const getLastUpdateTimestamp = (clientId: string): number => {
-  const timestampKey = `${GLOBAL_STORAGE_PREFIX}${clientId}-timestamp`;
+  const timestampKey = `${GLOBAL_STORAGE_PREFIX}${clientId}_TIMESTAMP`;
   const timestamp = localStorage.getItem(timestampKey);
   return timestamp ? parseInt(timestamp, 10) : 0;
 };
@@ -158,59 +167,62 @@ export const CustomizationProvider: React.FC<{ children: ReactNode }> = ({ child
   const { user } = useAuth();
   const [customizations, setCustomizations] = useState<ClientCustomizations>(defaultCustomizations);
 
-  console.log('🔄 CustomizationProvider iniciado, usuário:', user);
+  console.log('🚀 CustomizationProvider iniciado para:', user?.clientId);
 
   // Carregar customizações do cliente logado
   useEffect(() => {
     if (user?.clientId) {
-      console.log(`🔍 Carregando customizações para cliente logado: ${user.clientId}`);
-      const clientCustomizations = loadGlobalClientCustomizations(user.clientId);
+      console.log(`📥 Carregando customizações do dashboard para: ${user.clientId}`);
+      const clientCustomizations = loadGlobalCustomizations(user.clientId);
       setCustomizations(clientCustomizations);
+      console.log(`📋 Dashboard carregado com:`, clientCustomizations);
     }
   }, [user?.clientId]);
 
   const saveCustomizationsGlobally = async (newCustomizations: ClientCustomizations) => {
     if (user?.clientId) {
-      console.log(`💾 Salvando customizações globalmente para: ${user.clientId}`);
+      console.log(`💾 SALVANDO GLOBALMENTE para ${user.clientId}:`, newCustomizations);
       
-      // Atualiza o estado local
+      // Atualizar estado local imediatamente
       setCustomizations(newCustomizations);
       
-      // Salva globalmente para que qualquer pessoa possa acessar
-      saveGlobalClientCustomizations(user.clientId, newCustomizations);
+      // Salvar globalmente para que TODOS vejam
+      saveGlobalCustomizations(user.clientId, newCustomizations);
+      
+      console.log(`✅ Customizações salvas! Agora visíveis em /site/${user.clientId}`);
     }
   };
 
   const updateCarouselImages = (images: CarouselImageData[]) => {
     if (user?.clientId) {
-      console.log(`🖼️ Atualizando imagens do carrossel para: ${user.clientId}`);
+      console.log(`🖼️ Atualizando imagens para: ${user.clientId}`);
       const updatedCustomizations = {
         ...customizations,
         carouselImages: images
       };
       
       setCustomizations(updatedCustomizations);
-      saveGlobalClientCustomizations(user.clientId, updatedCustomizations);
+      saveGlobalCustomizations(user.clientId, updatedCustomizations);
     }
   };
 
   const updatePlatformLinks = (links: PlatformLink[]) => {
     if (user?.clientId) {
-      console.log(`🔗 Atualizando links de plataformas para: ${user.clientId}`, links);
+      console.log(`🔗 Atualizando plataformas para: ${user.clientId}`, links);
       const updatedCustomizations = {
         ...customizations,
         platformLinks: links
       };
       
       setCustomizations(updatedCustomizations);
-      saveGlobalClientCustomizations(user.clientId, updatedCustomizations);
+      saveGlobalCustomizations(user.clientId, updatedCustomizations);
     }
   };
 
   // Função pública para carregar customizações de qualquer cliente
   const getClientCustomizations = (clientId: string): ClientCustomizations => {
-    console.log(`🔍 Buscando customizações públicas para: ${clientId}`);
-    return loadGlobalClientCustomizations(clientId);
+    console.log(`🌍 Carregando dados PÚBLICOS para: ${clientId}`);
+    return loadGlobalCustomizations(clientId);
   };
 
   return (
@@ -235,16 +247,21 @@ export const useCustomization = () => {
   return context;
 };
 
-// Função para carregar customizações sem contexto (para uso direto no ClientSite)
+// Função para usar FORA do contexto (site público)
 export const getPublicClientCustomizations = (clientId: string): ClientCustomizations => {
-  return loadGlobalClientCustomizations(clientId);
+  console.log(`🌐 SITE PÚBLICO - Carregando dados para: ${clientId}`);
+  return loadGlobalCustomizations(clientId);
 };
 
 // Função para verificar se há atualizações
 export const checkForUpdates = (clientId: string, lastCheck: number): { hasUpdates: boolean; customizations: ClientCustomizations } => {
   const lastUpdate = getLastUpdateTimestamp(clientId);
   const hasUpdates = lastUpdate > lastCheck;
-  const customizations = loadGlobalClientCustomizations(clientId);
+  const customizations = loadGlobalCustomizations(clientId);
+  
+  if (hasUpdates) {
+    console.log(`🔄 ATUALIZAÇÕES detectadas para ${clientId}! Última: ${new Date(lastUpdate).toLocaleTimeString()}`);
+  }
   
   return { hasUpdates, customizations };
 };
