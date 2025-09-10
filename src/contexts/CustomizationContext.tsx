@@ -78,32 +78,37 @@ const defaultCustomizations: ClientCustomizations = {
   instagramLink: 'https://www.instagram.com/layaneslots9217?igsh=MXJ3dDZnaThxeGx6NA=='
 };
 
-// Sistema de armazenamento global para compartilhar customizações
-const STORAGE_PREFIX = 'global-client-customizations-';
+// Prefixo global para armazenamento - acessível por qualquer pessoa
+const GLOBAL_STORAGE_PREFIX = 'site-customizations-';
 
-// Função para salvar customizações globalmente (acessível para qualquer pessoa)
-const saveGlobalCustomizations = (clientId: string, customizations: ClientCustomizations): void => {
+// Função para salvar customizações de forma global
+const saveGlobalClientCustomizations = (clientId: string, customizations: ClientCustomizations): void => {
   try {
-    const key = `${STORAGE_PREFIX}${clientId}`;
+    const globalKey = `${GLOBAL_STORAGE_PREFIX}${clientId}`;
     const data = JSON.stringify(customizations);
-    localStorage.setItem(key, data);
-    console.log(`Customizações salvas globalmente para cliente ${clientId}:`, customizations);
+    localStorage.setItem(globalKey, data);
+    
+    // Também salva com timestamp para controle de versão
+    const timestampKey = `${GLOBAL_STORAGE_PREFIX}${clientId}-timestamp`;
+    localStorage.setItem(timestampKey, Date.now().toString());
+    
+    console.log(`✅ Customizações salvas globalmente para ${clientId}:`, customizations);
   } catch (error) {
-    console.error(`Erro ao salvar customizações globalmente para ${clientId}:`, error);
+    console.error(`❌ Erro ao salvar customizações para ${clientId}:`, error);
   }
 };
 
-// Função para carregar customizações globalmente
-const loadGlobalCustomizations = (clientId: string): ClientCustomizations | null => {
+// Função para carregar customizações globais
+const loadGlobalClientCustomizations = (clientId: string): ClientCustomizations => {
   try {
-    const key = `${STORAGE_PREFIX}${clientId}`;
-    const stored = localStorage.getItem(key);
+    const globalKey = `${GLOBAL_STORAGE_PREFIX}${clientId}`;
+    const stored = localStorage.getItem(globalKey);
     
     if (stored) {
       const parsed = JSON.parse(stored);
-      console.log(`Customizações globais carregadas para cliente ${clientId}:`, parsed);
+      console.log(`✅ Customizações globais carregadas para ${clientId}:`, parsed);
       
-      // Migração de dados antigos se necessário
+      // Migração de dados se necessário
       const migrated = {
         ...defaultCustomizations,
         ...parsed,
@@ -114,76 +119,37 @@ const loadGlobalCustomizations = (clientId: string): ClientCustomizations | null
                 : img
             )
           : defaultCustomizations.carouselImages,
-        platformLinks: parsed.platformLinks || defaultCustomizations.platformLinks
+        platformLinks: Array.isArray(parsed.platformLinks) 
+          ? parsed.platformLinks 
+          : defaultCustomizations.platformLinks
       };
       
       return migrated;
     }
   } catch (error) {
-    console.error(`Erro ao carregar customizações globais para ${clientId}:`, error);
+    console.error(`❌ Erro ao carregar customizações para ${clientId}:`, error);
   }
   
-  return null;
+  // Retorna dados padrão com informações do cliente
+  const clientDefaults = {
+    ...defaultCustomizations,
+    companyName: `${clientId.toUpperCase()} - TradingPro`,
+    heroTitle: `Sinais Profissionais - ${clientId.toUpperCase()}`,
+  };
+  
+  console.log(`📝 Usando dados padrão para ${clientId}:`, clientDefaults);
+  
+  // Salva os dados padrão para futuras consultas
+  saveGlobalClientCustomizations(clientId, clientDefaults);
+  
+  return clientDefaults;
 };
 
-// Banco de dados simulado para fallback
-const clientCustomizationsDB: { [clientId: string]: ClientCustomizations } = {
-  'client-1': {
-    ...defaultCustomizations,
-    companyName: 'Cliente 1 - TradingPro',
-    heroTitle: 'Sinais Profissionais - Cliente 1',
-    platformLinks: [
-      { name: "777 CLUBE", url: "https://777boat.net/?id=232676057" },
-      { name: "GRUPO W1", url: "https://w1-shawlpg.com/?id=687313071" },
-      { name: "GRUPO 999", url: "https://999sincero.bet/?id=160469960" }
-    ]
-  },
-  'client-2': {
-    ...defaultCustomizations,
-    companyName: 'Cliente 2 - TradingPro',
-    heroTitle: 'Sinais VIP - Cliente 2',
-    primaryColor: '#8B5CF6',
-    secondaryColor: '#06B6D4',
-    carouselImages: [
-      { type: 'url', value: "https://laysinais.netlify.app/img/IMAGENS%20SITE/1.jpeg" },
-      { type: 'url', value: "https://laysinais.netlify.app/img/IMAGENS%20SITE/2.jpeg" }
-    ],
-    platformLinks: [
-      { name: "777 CLUBE", url: "https://777boat.net/?id=232676057" },
-      { name: "GRUPO W1", url: "https://w1-shawlpg.com/?id=687313071" }
-    ]
-  },
-  'client-3': {
-    ...defaultCustomizations,
-    companyName: 'Cliente 3 - TradingPro',
-    heroTitle: 'Sinais Premium - Cliente 3',
-    primaryColor: '#EF4444',
-    secondaryColor: '#F59E0B',
-    carouselImages: [
-      { type: 'url', value: "https://laysinais.netlify.app/img/IMAGENS%20SITE/3.jpeg" },
-      { type: 'url', value: "https://laysinais.netlify.app/img/IMAGENS%20SITE/4.jpeg" }
-    ],
-    platformLinks: [
-      { name: "GRUPO 999", url: "https://999sincero.bet/?id=160469960" }
-    ]
-  },
-  'client-4': {
-    ...defaultCustomizations,
-    companyName: 'Cliente 4 - TradingPro',
-    heroTitle: 'Sinais Elite - Cliente 4',
-    primaryColor: '#10B981',
-    secondaryColor: '#3B82F6',
-    carouselImages: [
-      { type: 'url', value: "https://laysinais.netlify.app/img/IMAGENS%20SITE/1.jpeg" },
-      { type: 'url', value: "https://laysinais.netlify.app/img/IMAGENS%20SITE/3.jpeg" },
-      { type: 'url', value: "https://laysinais.netlify.app/img/IMAGENS%20SITE/4.jpeg" }
-    ],
-    platformLinks: [
-      { name: "777 CLUBE", url: "https://777boat.net/?id=232676057" },
-      { name: "GRUPO W1", url: "https://w1-shawlpg.com/?id=687313071" },
-      { name: "GRUPO 999", url: "https://999sincero.bet/?id=160469960" }
-    ]
-  }
+// Função para obter timestamp da última atualização
+const getLastUpdateTimestamp = (clientId: string): number => {
+  const timestampKey = `${GLOBAL_STORAGE_PREFIX}${clientId}-timestamp`;
+  const timestamp = localStorage.getItem(timestampKey);
+  return timestamp ? parseInt(timestamp, 10) : 0;
 };
 
 const CustomizationContext = createContext<CustomizationContextType | undefined>(undefined);
@@ -192,100 +158,59 @@ export const CustomizationProvider: React.FC<{ children: ReactNode }> = ({ child
   const { user } = useAuth();
   const [customizations, setCustomizations] = useState<ClientCustomizations>(defaultCustomizations);
 
-  console.log('CustomizationProvider renderizado, user:', user);
+  console.log('🔄 CustomizationProvider iniciado, usuário:', user);
 
   // Carregar customizações do cliente logado
   useEffect(() => {
-    console.log('useEffect executado, user?.clientId:', user?.clientId);
     if (user?.clientId) {
-      console.log('Carregando customizações para cliente:', user.clientId);
-      
-      // Tenta carregar customizações globais primeiro
-      const globalCustomizations = loadGlobalCustomizations(user.clientId);
-      
-      if (globalCustomizations) {
-        console.log('Customizações globais encontradas:', globalCustomizations);
-        setCustomizations(globalCustomizations);
-        return;
-      }
-      
-      // Fallback para banco simulado
-      const fallbackCustomizations = clientCustomizationsDB[user.clientId] || defaultCustomizations;
-      console.log('Usando customizações de fallback:', fallbackCustomizations);
-      setCustomizations(fallbackCustomizations);
-      
-      // Salva no armazenamento global para próximas vezes
-      saveGlobalCustomizations(user.clientId, fallbackCustomizations);
+      console.log(`🔍 Carregando customizações para cliente logado: ${user.clientId}`);
+      const clientCustomizations = loadGlobalClientCustomizations(user.clientId);
+      setCustomizations(clientCustomizations);
     }
   }, [user?.clientId]);
 
   const saveCustomizationsGlobally = async (newCustomizations: ClientCustomizations) => {
     if (user?.clientId) {
-      console.log('Salvando customizações globalmente para cliente:', user.clientId);
+      console.log(`💾 Salvando customizações globalmente para: ${user.clientId}`);
       
       // Atualiza o estado local
       setCustomizations(newCustomizations);
       
-      // Salva globalmente para que outros usuários vejam
-      saveGlobalCustomizations(user.clientId, newCustomizations);
-      
-      // Também atualiza o banco simulado
-      clientCustomizationsDB[user.clientId] = newCustomizations;
-      
-      console.log('Customizações salvas com sucesso globalmente!');
+      // Salva globalmente para que qualquer pessoa possa acessar
+      saveGlobalClientCustomizations(user.clientId, newCustomizations);
     }
   };
 
   const updateCarouselImages = (images: CarouselImageData[]) => {
     if (user?.clientId) {
+      console.log(`🖼️ Atualizando imagens do carrossel para: ${user.clientId}`);
       const updatedCustomizations = {
         ...customizations,
         carouselImages: images
       };
       
       setCustomizations(updatedCustomizations);
-      saveGlobalCustomizations(user.clientId, updatedCustomizations);
-      clientCustomizationsDB[user.clientId] = updatedCustomizations;
-      
-      console.log('Imagens do carrossel atualizadas globalmente');
+      saveGlobalClientCustomizations(user.clientId, updatedCustomizations);
     }
   };
 
   const updatePlatformLinks = (links: PlatformLink[]) => {
     if (user?.clientId) {
-      console.log('updatePlatformLinks chamado com:', links);
+      console.log(`🔗 Atualizando links de plataformas para: ${user.clientId}`, links);
       const updatedCustomizations = {
         ...customizations,
         platformLinks: links
       };
       
       setCustomizations(updatedCustomizations);
-      saveGlobalCustomizations(user.clientId, updatedCustomizations);
-      clientCustomizationsDB[user.clientId] = updatedCustomizations;
-      
-      console.log('Links de plataformas atualizados globalmente');
+      saveGlobalClientCustomizations(user.clientId, updatedCustomizations);
     }
   };
 
+  // Função pública para carregar customizações de qualquer cliente
   const getClientCustomizations = (clientId: string): ClientCustomizations => {
-    console.log('getClientCustomizations chamado para:', clientId);
-    
-    // Tenta carregar customizações globais primeiro
-    const globalCustomizations = loadGlobalCustomizations(clientId);
-    
-    if (globalCustomizations) {
-      console.log('Customizações globais encontradas para', clientId);
-      return globalCustomizations;
-    }
-    
-    // Fallback para banco simulado
-    const fallbackCustomizations = clientCustomizationsDB[clientId] || defaultCustomizations;
-    console.log('Usando fallback para', clientId);
-    
-    // Salva no armazenamento global se não existir
-    saveGlobalCustomizations(clientId, fallbackCustomizations);
-    
-    return fallbackCustomizations;
+    console.log(`🔍 Buscando customizações públicas para: ${clientId}`);
+    return loadGlobalClientCustomizations(clientId);
   };
 
   return (
@@ -308,4 +233,18 @@ export const useCustomization = () => {
     throw new Error('useCustomization must be used within a CustomizationProvider');
   }
   return context;
+};
+
+// Função para carregar customizações sem contexto (para uso direto no ClientSite)
+export const getPublicClientCustomizations = (clientId: string): ClientCustomizations => {
+  return loadGlobalClientCustomizations(clientId);
+};
+
+// Função para verificar se há atualizações
+export const checkForUpdates = (clientId: string, lastCheck: number): { hasUpdates: boolean; customizations: ClientCustomizations } => {
+  const lastUpdate = getLastUpdateTimestamp(clientId);
+  const hasUpdates = lastUpdate > lastCheck;
+  const customizations = loadGlobalClientCustomizations(clientId);
+  
+  return { hasUpdates, customizations };
 };
